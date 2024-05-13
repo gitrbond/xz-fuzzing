@@ -1,0 +1,6 @@
+# environment variables:
+AFL_CUSTOM_INFO_PROGRAM=/home/rbondpc/sber_prbo_fuzzing/xz-5.4.6/src/xz/xz
+AFL_CUSTOM_INFO_PROGRAM_ARGV=-d @@
+AFL_CUSTOM_INFO_OUT=output_dir1/
+# command line:
+'/home/rbondpc/sber_prbo_fuzzing/AFLplusplus/afl-fuzz' '-i' 'seeds_xz_dir/' '-o' 'output_dir1/' '-n' '--' '/home/rbondpc/sber_prbo_fuzzing/xz-5.4.6/src/xz/xz' '-d' '@@'
