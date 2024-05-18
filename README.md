@@ -24,7 +24,7 @@ To fuzz-test decompression wuth afl: `/path/to/afl/afl-fuzz -i seeds_xz_dir/ -o 
 
 ## fuzzing results
 Fuzzing was stopped once no new paths were found in 15 minutes. In 2h 47min, 443 paths were found, and zero crashes.
-![image](https://github.com/gitrbond/xz-fuzzing/assets/61554885/f3b0d5b0-44a1-4fe7-a662-40c1344f9e2f)
+![image](https://github.com/gitrbond/xz-fuzzing/assets/61554885/cb95ddb1-ed11-4e9d-9e5a-1d93ce5f7c2e)
 
 # calculating code coverage with lcov
 
