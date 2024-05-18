@@ -1,0 +1,1400 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - xz_coverage - liblzma/common/string_conversion.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">liblzma/common</a> - string_conversion.c<span style="font-size: 80%;"> (source / <a href="string_conversion.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">xz_coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">387</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2024-05-18 15:25:53</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : ///////////////////////////////////////////////////////////////////////////////</a>
+<a name="2"><span class="lineNum">       2 </span>            : //</a>
+<a name="3"><span class="lineNum">       3 </span>            : /// \file       string_conversion.c</a>
+<a name="4"><span class="lineNum">       4 </span>            : /// \brief      Conversion of strings to filter chain and vice versa</a>
+<a name="5"><span class="lineNum">       5 </span>            : //</a>
+<a name="6"><span class="lineNum">       6 </span>            : //  Author:     Lasse Collin</a>
+<a name="7"><span class="lineNum">       7 </span>            : //</a>
+<a name="8"><span class="lineNum">       8 </span>            : //  This file has been put into the public domain.</a>
+<a name="9"><span class="lineNum">       9 </span>            : //  You can do whatever you want with this file.</a>
+<a name="10"><span class="lineNum">      10 </span>            : //</a>
+<a name="11"><span class="lineNum">      11 </span>            : ///////////////////////////////////////////////////////////////////////////////</a>
+<a name="12"><span class="lineNum">      12 </span>            : </a>
+<a name="13"><span class="lineNum">      13 </span>            : #include &quot;filter_common.h&quot;</a>
+<a name="14"><span class="lineNum">      14 </span>            : </a>
+<a name="15"><span class="lineNum">      15 </span>            : </a>
+<a name="16"><span class="lineNum">      16 </span>            : /////////////////////</a>
+<a name="17"><span class="lineNum">      17 </span>            : // String building //</a>
+<a name="18"><span class="lineNum">      18 </span>            : /////////////////////</a>
+<a name="19"><span class="lineNum">      19 </span>            : </a>
+<a name="20"><span class="lineNum">      20 </span>            : /// How much memory to allocate for strings. For now, no realloc is used</a>
+<a name="21"><span class="lineNum">      21 </span>            : /// so this needs to be big enough even though there of course is</a>
+<a name="22"><span class="lineNum">      22 </span>            : /// an overflow check still.</a>
+<a name="23"><span class="lineNum">      23 </span>            : ///</a>
+<a name="24"><span class="lineNum">      24 </span>            : /// FIXME? Using a fixed size is wasteful if the application doesn't free</a>
+<a name="25"><span class="lineNum">      25 </span>            : /// the string fairly quickly but this can be improved later if needed.</a>
+<a name="26"><span class="lineNum">      26 </span>            : #define STR_ALLOC_SIZE 800</a>
+<a name="27"><span class="lineNum">      27 </span>            : </a>
+<a name="28"><span class="lineNum">      28 </span>            : </a>
+<a name="29"><span class="lineNum">      29 </span>            : typedef struct {</a>
+<a name="30"><span class="lineNum">      30 </span>            :         char *buf;</a>
+<a name="31"><span class="lineNum">      31 </span>            :         size_t pos;</a>
+<a name="32"><span class="lineNum">      32 </span>            : } lzma_str;</a>
+<a name="33"><span class="lineNum">      33 </span>            : </a>
+<a name="34"><span class="lineNum">      34 </span>            : </a>
+<a name="35"><span class="lineNum">      35 </span>            : static lzma_ret</a>
+<a name="36"><span class="lineNum">      36 </span><span class="lineNoCov">          0 : str_init(lzma_str *str, const lzma_allocator *allocator)</span></a>
+<a name="37"><span class="lineNum">      37 </span>            : {</a>
+<a name="38"><span class="lineNum">      38 </span><span class="lineNoCov">          0 :         str-&gt;buf = lzma_alloc(STR_ALLOC_SIZE, allocator);</span></a>
+<a name="39"><span class="lineNum">      39 </span><span class="lineNoCov">          0 :         if (str-&gt;buf == NULL)</span></a>
+<a name="40"><span class="lineNum">      40 </span>            :                 return LZMA_MEM_ERROR;</a>
+<a name="41"><span class="lineNum">      41 </span>            : </a>
+<a name="42"><span class="lineNum">      42 </span><span class="lineNoCov">          0 :         str-&gt;pos = 0;</span></a>
+<a name="43"><span class="lineNum">      43 </span><span class="lineNoCov">          0 :         return LZMA_OK;</span></a>
+<a name="44"><span class="lineNum">      44 </span>            : }</a>
+<a name="45"><span class="lineNum">      45 </span>            : </a>
+<a name="46"><span class="lineNum">      46 </span>            : </a>
+<a name="47"><span class="lineNum">      47 </span>            : static void</a>
+<a name="48"><span class="lineNum">      48 </span><span class="lineNoCov">          0 : str_free(lzma_str *str, const lzma_allocator *allocator)</span></a>
+<a name="49"><span class="lineNum">      49 </span>            : {</a>
+<a name="50"><span class="lineNum">      50 </span><span class="lineNoCov">          0 :         lzma_free(str-&gt;buf, allocator);</span></a>
+<a name="51"><span class="lineNum">      51 </span><span class="lineNoCov">          0 :         return;</span></a>
+<a name="52"><span class="lineNum">      52 </span>            : }</a>
+<a name="53"><span class="lineNum">      53 </span>            : </a>
+<a name="54"><span class="lineNum">      54 </span>            : </a>
+<a name="55"><span class="lineNum">      55 </span>            : static bool</a>
+<a name="56"><span class="lineNum">      56 </span><span class="lineNoCov">          0 : str_is_full(const lzma_str *str)</span></a>
+<a name="57"><span class="lineNum">      57 </span>            : {</a>
+<a name="58"><span class="lineNum">      58 </span><span class="lineNoCov">          0 :         return str-&gt;pos == STR_ALLOC_SIZE - 1;</span></a>
+<a name="59"><span class="lineNum">      59 </span>            : }</a>
+<a name="60"><span class="lineNum">      60 </span>            : </a>
+<a name="61"><span class="lineNum">      61 </span>            : </a>
+<a name="62"><span class="lineNum">      62 </span>            : static lzma_ret</a>
+<a name="63"><span class="lineNum">      63 </span><span class="lineNoCov">          0 : str_finish(char **dest, lzma_str *str, const lzma_allocator *allocator)</span></a>
+<a name="64"><span class="lineNum">      64 </span>            : {</a>
+<a name="65"><span class="lineNum">      65 </span><span class="lineNoCov">          0 :         if (str_is_full(str)) {</span></a>
+<a name="66"><span class="lineNum">      66 </span>            :                 // The preallocated buffer was too small.</a>
+<a name="67"><span class="lineNum">      67 </span>            :                 // This shouldn't happen as STR_ALLOC_SIZE should</a>
+<a name="68"><span class="lineNum">      68 </span>            :                 // be adjusted if new filters are added.</a>
+<a name="69"><span class="lineNum">      69 </span><span class="lineNoCov">          0 :                 lzma_free(str-&gt;buf, allocator);</span></a>
+<a name="70"><span class="lineNum">      70 </span><span class="lineNoCov">          0 :                 *dest = NULL;</span></a>
+<a name="71"><span class="lineNum">      71 </span><span class="lineNoCov">          0 :                 assert(0);</span></a>
+<a name="72"><span class="lineNum">      72 </span><span class="lineNoCov">          0 :                 return LZMA_PROG_ERROR;</span></a>
+<a name="73"><span class="lineNum">      73 </span>            :         }</a>
+<a name="74"><span class="lineNum">      74 </span>            : </a>
+<a name="75"><span class="lineNum">      75 </span><span class="lineNoCov">          0 :         str-&gt;buf[str-&gt;pos] = '\0';</span></a>
+<a name="76"><span class="lineNum">      76 </span><span class="lineNoCov">          0 :         *dest = str-&gt;buf;</span></a>
+<a name="77"><span class="lineNum">      77 </span><span class="lineNoCov">          0 :         return LZMA_OK;</span></a>
+<a name="78"><span class="lineNum">      78 </span>            : }</a>
+<a name="79"><span class="lineNum">      79 </span>            : </a>
+<a name="80"><span class="lineNum">      80 </span>            : </a>
+<a name="81"><span class="lineNum">      81 </span>            : static void</a>
+<a name="82"><span class="lineNum">      82 </span>            : str_append_str(lzma_str *str, const char *s)</a>
+<a name="83"><span class="lineNum">      83 </span>            : {</a>
+<a name="84"><span class="lineNum">      84 </span>            :         const size_t len = strlen(s);</a>
+<a name="85"><span class="lineNum">      85 </span>            :         const size_t limit = STR_ALLOC_SIZE - 1 - str-&gt;pos;</a>
+<a name="86"><span class="lineNum">      86 </span>            :         const size_t copy_size = my_min(len, limit);</a>
+<a name="87"><span class="lineNum">      87 </span>            : </a>
+<a name="88"><span class="lineNum">      88 </span>            :         memcpy(str-&gt;buf + str-&gt;pos, s, copy_size);</a>
+<a name="89"><span class="lineNum">      89 </span>            :         str-&gt;pos += copy_size;</a>
+<a name="90"><span class="lineNum">      90 </span>            :         return;</a>
+<a name="91"><span class="lineNum">      91 </span>            : }</a>
+<a name="92"><span class="lineNum">      92 </span>            : </a>
+<a name="93"><span class="lineNum">      93 </span>            : </a>
+<a name="94"><span class="lineNum">      94 </span>            : static void</a>
+<a name="95"><span class="lineNum">      95 </span><span class="lineNoCov">          0 : str_append_u32(lzma_str *str, uint32_t v, bool use_byte_suffix)</span></a>
+<a name="96"><span class="lineNum">      96 </span>            : {</a>
+<a name="97"><span class="lineNum">      97 </span><span class="lineNoCov">          0 :         if (v == 0) {</span></a>
+<a name="98"><span class="lineNum">      98 </span><span class="lineNoCov">          0 :                 str_append_str(str, &quot;0&quot;);</span></a>
+<a name="99"><span class="lineNum">      99 </span>            :         } else {</a>
+<a name="100"><span class="lineNum">     100 </span>            :                 // NOTE: Don't use plain &quot;B&quot; because xz and the parser in this</a>
+<a name="101"><span class="lineNum">     101 </span>            :                 // file don't support it and at glance it may look like 8</a>
+<a name="102"><span class="lineNum">     102 </span>            :                 // (there cannot be a space before the suffix).</a>
+<a name="103"><span class="lineNum">     103 </span><span class="lineNoCov">          0 :                 static const char suffixes[4][4] = { &quot;&quot;, &quot;KiB&quot;, &quot;MiB&quot;, &quot;GiB&quot; };</span></a>
+<a name="104"><span class="lineNum">     104 </span>            : </a>
+<a name="105"><span class="lineNum">     105 </span><span class="lineNoCov">          0 :                 size_t suf = 0;</span></a>
+<a name="106"><span class="lineNum">     106 </span><span class="lineNoCov">          0 :                 if (use_byte_suffix) {</span></a>
+<a name="107"><span class="lineNum">     107 </span><span class="lineNoCov">          0 :                         while ((v &amp; 1023) == 0</span></a>
+<a name="108"><span class="lineNum">     108 </span><span class="lineNoCov">          0 :                                         &amp;&amp; suf &lt; ARRAY_SIZE(suffixes) - 1) {</span></a>
+<a name="109"><span class="lineNum">     109 </span><span class="lineNoCov">          0 :                                 v &gt;&gt;= 10;</span></a>
+<a name="110"><span class="lineNum">     110 </span><span class="lineNoCov">          0 :                                 ++suf;</span></a>
+<a name="111"><span class="lineNum">     111 </span>            :                         }</a>
+<a name="112"><span class="lineNum">     112 </span>            :                 }</a>
+<a name="113"><span class="lineNum">     113 </span>            : </a>
+<a name="114"><span class="lineNum">     114 </span>            :                 // UINT32_MAX in base 10 would need 10 + 1 bytes. Remember</a>
+<a name="115"><span class="lineNum">     115 </span>            :                 // that initializing to &quot;&quot; initializes all elements to</a>
+<a name="116"><span class="lineNum">     116 </span>            :                 // zero so '\0'-termination gets handled by this.</a>
+<a name="117"><span class="lineNum">     117 </span><span class="lineNoCov">          0 :                 char buf[16] = &quot;&quot;;</span></a>
+<a name="118"><span class="lineNum">     118 </span><span class="lineNoCov">          0 :                 size_t pos = sizeof(buf) - 1;</span></a>
+<a name="119"><span class="lineNum">     119 </span>            : </a>
+<a name="120"><span class="lineNum">     120 </span><span class="lineNoCov">          0 :                 do {</span></a>
+<a name="121"><span class="lineNum">     121 </span><span class="lineNoCov">          0 :                         buf[--pos] = '0' + (v % 10);</span></a>
+<a name="122"><span class="lineNum">     122 </span><span class="lineNoCov">          0 :                         v /= 10;</span></a>
+<a name="123"><span class="lineNum">     123 </span><span class="lineNoCov">          0 :                 } while (v != 0);</span></a>
+<a name="124"><span class="lineNum">     124 </span>            : </a>
+<a name="125"><span class="lineNum">     125 </span><span class="lineNoCov">          0 :                 str_append_str(str, buf + pos);</span></a>
+<a name="126"><span class="lineNum">     126 </span><span class="lineNoCov">          0 :                 str_append_str(str, suffixes[suf]);</span></a>
+<a name="127"><span class="lineNum">     127 </span>            :         }</a>
+<a name="128"><span class="lineNum">     128 </span>            : </a>
+<a name="129"><span class="lineNum">     129 </span><span class="lineNoCov">          0 :         return;</span></a>
+<a name="130"><span class="lineNum">     130 </span>            : }</a>
+<a name="131"><span class="lineNum">     131 </span>            : </a>
+<a name="132"><span class="lineNum">     132 </span>            : </a>
+<a name="133"><span class="lineNum">     133 </span>            : //////////////////////////////////////////////</a>
+<a name="134"><span class="lineNum">     134 </span>            : // Parsing and stringification declarations //</a>
+<a name="135"><span class="lineNum">     135 </span>            : //////////////////////////////////////////////</a>
+<a name="136"><span class="lineNum">     136 </span>            : </a>
+<a name="137"><span class="lineNum">     137 </span>            : /// Maximum length for filter and option names.</a>
+<a name="138"><span class="lineNum">     138 </span>            : /// 11 chars + terminating '\0' + sizeof(uint32_t) = 16 bytes</a>
+<a name="139"><span class="lineNum">     139 </span>            : #define NAME_LEN_MAX 11</a>
+<a name="140"><span class="lineNum">     140 </span>            : </a>
+<a name="141"><span class="lineNum">     141 </span>            : </a>
+<a name="142"><span class="lineNum">     142 </span>            : /// For option_map.flags: Use .u.map to do convert the input value</a>
+<a name="143"><span class="lineNum">     143 </span>            : /// to an integer. Without this flag, .u.range.{min,max} are used</a>
+<a name="144"><span class="lineNum">     144 </span>            : /// as the allowed range for the integer.</a>
+<a name="145"><span class="lineNum">     145 </span>            : #define OPTMAP_USE_NAME_VALUE_MAP 0x01</a>
+<a name="146"><span class="lineNum">     146 </span>            : </a>
+<a name="147"><span class="lineNum">     147 </span>            : /// For option_map.flags: Allow KiB/MiB/GiB in input string and use them in</a>
+<a name="148"><span class="lineNum">     148 </span>            : /// the stringified output if the value is an exact multiple of these.</a>
+<a name="149"><span class="lineNum">     149 </span>            : /// This is used e.g. for LZMA1/2 dictionary size.</a>
+<a name="150"><span class="lineNum">     150 </span>            : #define OPTMAP_USE_BYTE_SUFFIX 0x02</a>
+<a name="151"><span class="lineNum">     151 </span>            : </a>
+<a name="152"><span class="lineNum">     152 </span>            : /// For option_map.flags: If the integer value is zero then this option</a>
+<a name="153"><span class="lineNum">     153 </span>            : /// won't be included in the stringified output. It's used e.g. for</a>
+<a name="154"><span class="lineNum">     154 </span>            : /// BCJ filter start offset which usually is zero.</a>
+<a name="155"><span class="lineNum">     155 </span>            : #define OPTMAP_NO_STRFY_ZERO 0x04</a>
+<a name="156"><span class="lineNum">     156 </span>            : </a>
+<a name="157"><span class="lineNum">     157 </span>            : /// Possible values for option_map.type. Since OPTMAP_TYPE_UINT32 is 0,</a>
+<a name="158"><span class="lineNum">     158 </span>            : /// it doesn't need to be specified in the initializers as it is</a>
+<a name="159"><span class="lineNum">     159 </span>            : /// the implicit value.</a>
+<a name="160"><span class="lineNum">     160 </span>            : enum {</a>
+<a name="161"><span class="lineNum">     161 </span>            :         OPTMAP_TYPE_UINT32,</a>
+<a name="162"><span class="lineNum">     162 </span>            :         OPTMAP_TYPE_LZMA_MODE,</a>
+<a name="163"><span class="lineNum">     163 </span>            :         OPTMAP_TYPE_LZMA_MATCH_FINDER,</a>
+<a name="164"><span class="lineNum">     164 </span>            :         OPTMAP_TYPE_LZMA_PRESET,</a>
+<a name="165"><span class="lineNum">     165 </span>            : };</a>
+<a name="166"><span class="lineNum">     166 </span>            : </a>
+<a name="167"><span class="lineNum">     167 </span>            : </a>
+<a name="168"><span class="lineNum">     168 </span>            : /// This is for mapping string values in options to integers.</a>
+<a name="169"><span class="lineNum">     169 </span>            : /// The last element of an array must have &quot;&quot; as the name.</a>
+<a name="170"><span class="lineNum">     170 </span>            : /// It's used e.g. for match finder names in LZMA1/2.</a>
+<a name="171"><span class="lineNum">     171 </span>            : typedef struct {</a>
+<a name="172"><span class="lineNum">     172 </span>            :         const char name[NAME_LEN_MAX + 1];</a>
+<a name="173"><span class="lineNum">     173 </span>            :         const uint32_t value;</a>
+<a name="174"><span class="lineNum">     174 </span>            : } name_value_map;</a>
+<a name="175"><span class="lineNum">     175 </span>            : </a>
+<a name="176"><span class="lineNum">     176 </span>            : </a>
+<a name="177"><span class="lineNum">     177 </span>            : /// Each filter that has options needs an array of option_map structures.</a>
+<a name="178"><span class="lineNum">     178 </span>            : /// The array doesn't need to be terminated as the functions take the</a>
+<a name="179"><span class="lineNum">     179 </span>            : /// length of the array as an argument.</a>
+<a name="180"><span class="lineNum">     180 </span>            : ///</a>
+<a name="181"><span class="lineNum">     181 </span>            : /// When converting a string to filter options structure, option values</a>
+<a name="182"><span class="lineNum">     182 </span>            : /// will be handled in a few different ways:</a>
+<a name="183"><span class="lineNum">     183 </span>            : ///</a>
+<a name="184"><span class="lineNum">     184 </span>            : /// (1) If .type equals OPTMAP_TYPE_LZMA_PRESET then LZMA1/2 preset string</a>
+<a name="185"><span class="lineNum">     185 </span>            : ///     is handled specially.</a>
+<a name="186"><span class="lineNum">     186 </span>            : ///</a>
+<a name="187"><span class="lineNum">     187 </span>            : /// (2) If .flags has OPTMAP_USE_NAME_VALUE_MAP set then the string is</a>
+<a name="188"><span class="lineNum">     188 </span>            : ///     converted to an integer using the name_value_map pointed by .u.map.</a>
+<a name="189"><span class="lineNum">     189 </span>            : ///     The last element in .u.map must have .name = &quot;&quot; as the terminator.</a>
+<a name="190"><span class="lineNum">     190 </span>            : ///</a>
+<a name="191"><span class="lineNum">     191 </span>            : /// (3) Otherwise the string is treated as a non-negative unsigned decimal</a>
+<a name="192"><span class="lineNum">     192 </span>            : ///     integer which must be in the range set in .u.range. If .flags has</a>
+<a name="193"><span class="lineNum">     193 </span>            : ///     OPTMAP_USE_BYTE_SUFFIX then KiB, MiB, and GiB suffixes are allowed.</a>
+<a name="194"><span class="lineNum">     194 </span>            : ///</a>
+<a name="195"><span class="lineNum">     195 </span>            : /// The integer value from (2) or (3) is then stored to filter_options</a>
+<a name="196"><span class="lineNum">     196 </span>            : /// at the offset specified in .offset using the type specified in .type</a>
+<a name="197"><span class="lineNum">     197 </span>            : /// (default is uint32_t).</a>
+<a name="198"><span class="lineNum">     198 </span>            : ///</a>
+<a name="199"><span class="lineNum">     199 </span>            : /// Stringifying a filter is done by processing a given number of options</a>
+<a name="200"><span class="lineNum">     200 </span>            : /// in order from the beginning of an option_map array. The integer is</a>
+<a name="201"><span class="lineNum">     201 </span>            : /// read from filter_options at .offset using the type from .type.</a>
+<a name="202"><span class="lineNum">     202 </span>            : ///</a>
+<a name="203"><span class="lineNum">     203 </span>            : /// If the integer is zero and .flags has OPTMAP_NO_STRFY_ZERO then the</a>
+<a name="204"><span class="lineNum">     204 </span>            : /// option is skipped.</a>
+<a name="205"><span class="lineNum">     205 </span>            : ///</a>
+<a name="206"><span class="lineNum">     206 </span>            : /// If .flags has OPTMAP_USE_NAME_VALUE_MAP set then .u.map will be used</a>
+<a name="207"><span class="lineNum">     207 </span>            : /// to convert the option to a string. If the map doesn't contain a string</a>
+<a name="208"><span class="lineNum">     208 </span>            : /// for the integer value then &quot;UNKNOWN&quot; is used.</a>
+<a name="209"><span class="lineNum">     209 </span>            : ///</a>
+<a name="210"><span class="lineNum">     210 </span>            : /// If .flags doesn't have OPTMAP_USE_NAME_VALUE_MAP set then the integer is</a>
+<a name="211"><span class="lineNum">     211 </span>            : /// converted to a decimal value. If OPTMAP_USE_BYTE_SUFFIX is used then KiB,</a>
+<a name="212"><span class="lineNum">     212 </span>            : /// MiB, or GiB suffix is used if the value is an exact multiple of these.</a>
+<a name="213"><span class="lineNum">     213 </span>            : /// Plain &quot;B&quot; suffix is never used.</a>
+<a name="214"><span class="lineNum">     214 </span>            : typedef struct {</a>
+<a name="215"><span class="lineNum">     215 </span>            :         char name[NAME_LEN_MAX + 1];</a>
+<a name="216"><span class="lineNum">     216 </span>            :         uint8_t type;</a>
+<a name="217"><span class="lineNum">     217 </span>            :         uint8_t flags;</a>
+<a name="218"><span class="lineNum">     218 </span>            :         uint16_t offset;</a>
+<a name="219"><span class="lineNum">     219 </span>            : </a>
+<a name="220"><span class="lineNum">     220 </span>            :         union {</a>
+<a name="221"><span class="lineNum">     221 </span>            :                 struct {</a>
+<a name="222"><span class="lineNum">     222 </span>            :                         uint32_t min;</a>
+<a name="223"><span class="lineNum">     223 </span>            :                         uint32_t max;</a>
+<a name="224"><span class="lineNum">     224 </span>            :                 } range;</a>
+<a name="225"><span class="lineNum">     225 </span>            : </a>
+<a name="226"><span class="lineNum">     226 </span>            :                 const name_value_map *map;</a>
+<a name="227"><span class="lineNum">     227 </span>            :         } u;</a>
+<a name="228"><span class="lineNum">     228 </span>            : } option_map;</a>
+<a name="229"><span class="lineNum">     229 </span>            : </a>
+<a name="230"><span class="lineNum">     230 </span>            : </a>
+<a name="231"><span class="lineNum">     231 </span>            : static const char *parse_options(const char **const str, const char *str_end,</a>
+<a name="232"><span class="lineNum">     232 </span>            :                 void *filter_options,</a>
+<a name="233"><span class="lineNum">     233 </span>            :                 const option_map *const optmap, const size_t optmap_size);</a>
+<a name="234"><span class="lineNum">     234 </span>            : </a>
+<a name="235"><span class="lineNum">     235 </span>            : </a>
+<a name="236"><span class="lineNum">     236 </span>            : /////////</a>
+<a name="237"><span class="lineNum">     237 </span>            : // BCJ //</a>
+<a name="238"><span class="lineNum">     238 </span>            : /////////</a>
+<a name="239"><span class="lineNum">     239 </span>            : </a>
+<a name="240"><span class="lineNum">     240 </span>            : #if defined(HAVE_ENCODER_X86) \</a>
+<a name="241"><span class="lineNum">     241 </span>            :                 || defined(HAVE_DECODER_X86) \</a>
+<a name="242"><span class="lineNum">     242 </span>            :                 || defined(HAVE_ENCODER_ARM) \</a>
+<a name="243"><span class="lineNum">     243 </span>            :                 || defined(HAVE_DECODER_ARM) \</a>
+<a name="244"><span class="lineNum">     244 </span>            :                 || defined(HAVE_ENCODER_ARMTHUMB) \</a>
+<a name="245"><span class="lineNum">     245 </span>            :                 || defined(HAVE_DECODER_ARMTHUMB) \</a>
+<a name="246"><span class="lineNum">     246 </span>            :                 || defined(HAVE_ENCODER_ARM64) \</a>
+<a name="247"><span class="lineNum">     247 </span>            :                 || defined(HAVE_DECODER_ARM64) \</a>
+<a name="248"><span class="lineNum">     248 </span>            :                 || defined(HAVE_ENCODER_POWERPC) \</a>
+<a name="249"><span class="lineNum">     249 </span>            :                 || defined(HAVE_DECODER_POWERPC) \</a>
+<a name="250"><span class="lineNum">     250 </span>            :                 || defined(HAVE_ENCODER_IA64) \</a>
+<a name="251"><span class="lineNum">     251 </span>            :                 || defined(HAVE_DECODER_IA64) \</a>
+<a name="252"><span class="lineNum">     252 </span>            :                 || defined(HAVE_ENCODER_SPARC) \</a>
+<a name="253"><span class="lineNum">     253 </span>            :                 || defined(HAVE_DECODER_SPARC)</a>
+<a name="254"><span class="lineNum">     254 </span>            : static const option_map bcj_optmap[] = {</a>
+<a name="255"><span class="lineNum">     255 </span>            :         {</a>
+<a name="256"><span class="lineNum">     256 </span>            :                 .name = &quot;start&quot;,</a>
+<a name="257"><span class="lineNum">     257 </span>            :                 .flags = OPTMAP_NO_STRFY_ZERO | OPTMAP_USE_BYTE_SUFFIX,</a>
+<a name="258"><span class="lineNum">     258 </span>            :                 .offset = offsetof(lzma_options_bcj, start_offset),</a>
+<a name="259"><span class="lineNum">     259 </span>            :                 .u.range.min = 0,</a>
+<a name="260"><span class="lineNum">     260 </span>            :                 .u.range.max = UINT32_MAX,</a>
+<a name="261"><span class="lineNum">     261 </span>            :         }</a>
+<a name="262"><span class="lineNum">     262 </span>            : };</a>
+<a name="263"><span class="lineNum">     263 </span>            : </a>
+<a name="264"><span class="lineNum">     264 </span>            : </a>
+<a name="265"><span class="lineNum">     265 </span>            : static const char *</a>
+<a name="266"><span class="lineNum">     266 </span><span class="lineNoCov">          0 : parse_bcj(const char **const str, const char *str_end, void *filter_options)</span></a>
+<a name="267"><span class="lineNum">     267 </span>            : {</a>
+<a name="268"><span class="lineNum">     268 </span>            :         // filter_options was zeroed on allocation and that is enough</a>
+<a name="269"><span class="lineNum">     269 </span>            :         // for the default value.</a>
+<a name="270"><span class="lineNum">     270 </span><span class="lineNoCov">          0 :         return parse_options(str, str_end, filter_options,</span></a>
+<a name="271"><span class="lineNum">     271 </span>            :                         bcj_optmap, ARRAY_SIZE(bcj_optmap));</a>
+<a name="272"><span class="lineNum">     272 </span>            : }</a>
+<a name="273"><span class="lineNum">     273 </span>            : #endif</a>
+<a name="274"><span class="lineNum">     274 </span>            : </a>
+<a name="275"><span class="lineNum">     275 </span>            : </a>
+<a name="276"><span class="lineNum">     276 </span>            : ///////////</a>
+<a name="277"><span class="lineNum">     277 </span>            : // Delta //</a>
+<a name="278"><span class="lineNum">     278 </span>            : ///////////</a>
+<a name="279"><span class="lineNum">     279 </span>            : </a>
+<a name="280"><span class="lineNum">     280 </span>            : #if defined(HAVE_ENCODER_DELTA) || defined(HAVE_DECODER_DELTA)</a>
+<a name="281"><span class="lineNum">     281 </span>            : static const option_map delta_optmap[] = {</a>
+<a name="282"><span class="lineNum">     282 </span>            :         {</a>
+<a name="283"><span class="lineNum">     283 </span>            :                 .name = &quot;dist&quot;,</a>
+<a name="284"><span class="lineNum">     284 </span>            :                 .offset = offsetof(lzma_options_delta, dist),</a>
+<a name="285"><span class="lineNum">     285 </span>            :                 .u.range.min = LZMA_DELTA_DIST_MIN,</a>
+<a name="286"><span class="lineNum">     286 </span>            :                 .u.range.max = LZMA_DELTA_DIST_MAX,</a>
+<a name="287"><span class="lineNum">     287 </span>            :         }</a>
+<a name="288"><span class="lineNum">     288 </span>            : };</a>
+<a name="289"><span class="lineNum">     289 </span>            : </a>
+<a name="290"><span class="lineNum">     290 </span>            : </a>
+<a name="291"><span class="lineNum">     291 </span>            : static const char *</a>
+<a name="292"><span class="lineNum">     292 </span><span class="lineNoCov">          0 : parse_delta(const char **const str, const char *str_end, void *filter_options)</span></a>
+<a name="293"><span class="lineNum">     293 </span>            : {</a>
+<a name="294"><span class="lineNum">     294 </span><span class="lineNoCov">          0 :         lzma_options_delta *opts = filter_options;</span></a>
+<a name="295"><span class="lineNum">     295 </span><span class="lineNoCov">          0 :         opts-&gt;type = LZMA_DELTA_TYPE_BYTE;</span></a>
+<a name="296"><span class="lineNum">     296 </span><span class="lineNoCov">          0 :         opts-&gt;dist = LZMA_DELTA_DIST_MIN;</span></a>
+<a name="297"><span class="lineNum">     297 </span>            : </a>
+<a name="298"><span class="lineNum">     298 </span><span class="lineNoCov">          0 :         return parse_options(str, str_end, filter_options,</span></a>
+<a name="299"><span class="lineNum">     299 </span>            :                         delta_optmap, ARRAY_SIZE(delta_optmap));</a>
+<a name="300"><span class="lineNum">     300 </span>            : }</a>
+<a name="301"><span class="lineNum">     301 </span>            : #endif</a>
+<a name="302"><span class="lineNum">     302 </span>            : </a>
+<a name="303"><span class="lineNum">     303 </span>            : </a>
+<a name="304"><span class="lineNum">     304 </span>            : ///////////////////</a>
+<a name="305"><span class="lineNum">     305 </span>            : // LZMA1 &amp; LZMA2 //</a>
+<a name="306"><span class="lineNum">     306 </span>            : ///////////////////</a>
+<a name="307"><span class="lineNum">     307 </span>            : </a>
+<a name="308"><span class="lineNum">     308 </span>            : /// Help string for presets</a>
+<a name="309"><span class="lineNum">     309 </span>            : #define LZMA12_PRESET_STR &quot;0-9[e]&quot;</a>
+<a name="310"><span class="lineNum">     310 </span>            : </a>
+<a name="311"><span class="lineNum">     311 </span>            : </a>
+<a name="312"><span class="lineNum">     312 </span>            : static const char *</a>
+<a name="313"><span class="lineNum">     313 </span><span class="lineNoCov">          0 : parse_lzma12_preset(const char **const str, const char *str_end,</span></a>
+<a name="314"><span class="lineNum">     314 </span>            :                 uint32_t *preset)</a>
+<a name="315"><span class="lineNum">     315 </span>            : {</a>
+<a name="316"><span class="lineNum">     316 </span><span class="lineNoCov">          0 :         assert(*str &lt; str_end);</span></a>
+<a name="317"><span class="lineNum">     317 </span><span class="lineNoCov">          0 :         *preset = (uint32_t)(**str - '0');</span></a>
+<a name="318"><span class="lineNum">     318 </span>            : </a>
+<a name="319"><span class="lineNum">     319 </span>            :         // NOTE: Remember to update LZMA12_PRESET_STR if this is modified!</a>
+<a name="320"><span class="lineNum">     320 </span><span class="lineNoCov">          0 :         while (++*str &lt; str_end) {</span></a>
+<a name="321"><span class="lineNum">     321 </span><span class="lineNoCov">          0 :                 switch (**str) {</span></a>
+<a name="322"><span class="lineNum">     322 </span><span class="lineNoCov">          0 :                 case 'e':</span></a>
+<a name="323"><span class="lineNum">     323 </span><span class="lineNoCov">          0 :                         *preset |= LZMA_PRESET_EXTREME;</span></a>
+<a name="324"><span class="lineNum">     324 </span><span class="lineNoCov">          0 :                         break;</span></a>
+<a name="325"><span class="lineNum">     325 </span>            : </a>
+<a name="326"><span class="lineNum">     326 </span>            :                 default:</a>
+<a name="327"><span class="lineNum">     327 </span>            :                         return &quot;Unsupported preset flag&quot;;</a>
+<a name="328"><span class="lineNum">     328 </span>            :                 }</a>
+<a name="329"><span class="lineNum">     329 </span>            :         }</a>
+<a name="330"><span class="lineNum">     330 </span>            : </a>
+<a name="331"><span class="lineNum">     331 </span>            :         return NULL;</a>
+<a name="332"><span class="lineNum">     332 </span>            : }</a>
+<a name="333"><span class="lineNum">     333 </span>            : </a>
+<a name="334"><span class="lineNum">     334 </span>            : </a>
+<a name="335"><span class="lineNum">     335 </span>            : static const char *</a>
+<a name="336"><span class="lineNum">     336 </span><span class="lineNoCov">          0 : set_lzma12_preset(const char **const str, const char *str_end,</span></a>
+<a name="337"><span class="lineNum">     337 </span>            :                 void *filter_options)</a>
+<a name="338"><span class="lineNum">     338 </span>            : {</a>
+<a name="339"><span class="lineNum">     339 </span><span class="lineNoCov">          0 :         uint32_t preset;</span></a>
+<a name="340"><span class="lineNum">     340 </span><span class="lineNoCov">          0 :         const char *errmsg = parse_lzma12_preset(str, str_end, &amp;preset);</span></a>
+<a name="341"><span class="lineNum">     341 </span><span class="lineNoCov">          0 :         if (errmsg != NULL)</span></a>
+<a name="342"><span class="lineNum">     342 </span>            :                 return errmsg;</a>
+<a name="343"><span class="lineNum">     343 </span>            : </a>
+<a name="344"><span class="lineNum">     344 </span><span class="lineNoCov">          0 :         lzma_options_lzma *opts = filter_options;</span></a>
+<a name="345"><span class="lineNum">     345 </span><span class="lineNoCov">          0 :         if (lzma_lzma_preset(opts, preset))</span></a>
+<a name="346"><span class="lineNum">     346 </span><span class="lineNoCov">          0 :                 return &quot;Unsupported preset&quot;;</span></a>
+<a name="347"><span class="lineNum">     347 </span>            : </a>
+<a name="348"><span class="lineNum">     348 </span>            :         return NULL;</a>
+<a name="349"><span class="lineNum">     349 </span>            : }</a>
+<a name="350"><span class="lineNum">     350 </span>            : </a>
+<a name="351"><span class="lineNum">     351 </span>            : </a>
+<a name="352"><span class="lineNum">     352 </span>            : static const name_value_map lzma12_mode_map[] = {</a>
+<a name="353"><span class="lineNum">     353 </span>            :         { &quot;fast&quot;,   LZMA_MODE_FAST },</a>
+<a name="354"><span class="lineNum">     354 </span>            :         { &quot;normal&quot;, LZMA_MODE_NORMAL },</a>
+<a name="355"><span class="lineNum">     355 </span>            :         { &quot;&quot;,       0 }</a>
+<a name="356"><span class="lineNum">     356 </span>            : };</a>
+<a name="357"><span class="lineNum">     357 </span>            : </a>
+<a name="358"><span class="lineNum">     358 </span>            : </a>
+<a name="359"><span class="lineNum">     359 </span>            : static const name_value_map lzma12_mf_map[] = {</a>
+<a name="360"><span class="lineNum">     360 </span>            :         { &quot;hc3&quot;, LZMA_MF_HC3 },</a>
+<a name="361"><span class="lineNum">     361 </span>            :         { &quot;hc4&quot;, LZMA_MF_HC4 },</a>
+<a name="362"><span class="lineNum">     362 </span>            :         { &quot;bt2&quot;, LZMA_MF_BT2 },</a>
+<a name="363"><span class="lineNum">     363 </span>            :         { &quot;bt3&quot;, LZMA_MF_BT3 },</a>
+<a name="364"><span class="lineNum">     364 </span>            :         { &quot;bt4&quot;, LZMA_MF_BT4 },</a>
+<a name="365"><span class="lineNum">     365 </span>            :         { &quot;&quot;,    0 }</a>
+<a name="366"><span class="lineNum">     366 </span>            : };</a>
+<a name="367"><span class="lineNum">     367 </span>            : </a>
+<a name="368"><span class="lineNum">     368 </span>            : </a>
+<a name="369"><span class="lineNum">     369 </span>            : static const option_map lzma12_optmap[] = {</a>
+<a name="370"><span class="lineNum">     370 </span>            :         {</a>
+<a name="371"><span class="lineNum">     371 </span>            :                 .name = &quot;preset&quot;,</a>
+<a name="372"><span class="lineNum">     372 </span>            :                 .type = OPTMAP_TYPE_LZMA_PRESET,</a>
+<a name="373"><span class="lineNum">     373 </span>            :         }, {</a>
+<a name="374"><span class="lineNum">     374 </span>            :                 .name = &quot;dict&quot;,</a>
+<a name="375"><span class="lineNum">     375 </span>            :                 .flags = OPTMAP_USE_BYTE_SUFFIX,</a>
+<a name="376"><span class="lineNum">     376 </span>            :                 .offset = offsetof(lzma_options_lzma, dict_size),</a>
+<a name="377"><span class="lineNum">     377 </span>            :                 .u.range.min = LZMA_DICT_SIZE_MIN,</a>
+<a name="378"><span class="lineNum">     378 </span>            :                 // FIXME? The max is really max for encoding but decoding</a>
+<a name="379"><span class="lineNum">     379 </span>            :                 // would allow 4 GiB - 1 B.</a>
+<a name="380"><span class="lineNum">     380 </span>            :                 .u.range.max = (UINT32_C(1) &lt;&lt; 30) + (UINT32_C(1) &lt;&lt; 29),</a>
+<a name="381"><span class="lineNum">     381 </span>            :         }, {</a>
+<a name="382"><span class="lineNum">     382 </span>            :                 .name = &quot;lc&quot;,</a>
+<a name="383"><span class="lineNum">     383 </span>            :                 .offset = offsetof(lzma_options_lzma, lc),</a>
+<a name="384"><span class="lineNum">     384 </span>            :                 .u.range.min = LZMA_LCLP_MIN,</a>
+<a name="385"><span class="lineNum">     385 </span>            :                 .u.range.max = LZMA_LCLP_MAX,</a>
+<a name="386"><span class="lineNum">     386 </span>            :         }, {</a>
+<a name="387"><span class="lineNum">     387 </span>            :                 .name = &quot;lp&quot;,</a>
+<a name="388"><span class="lineNum">     388 </span>            :                 .offset = offsetof(lzma_options_lzma, lp),</a>
+<a name="389"><span class="lineNum">     389 </span>            :                 .u.range.min = LZMA_LCLP_MIN,</a>
+<a name="390"><span class="lineNum">     390 </span>            :                 .u.range.max = LZMA_LCLP_MAX,</a>
+<a name="391"><span class="lineNum">     391 </span>            :         }, {</a>
+<a name="392"><span class="lineNum">     392 </span>            :                 .name = &quot;pb&quot;,</a>
+<a name="393"><span class="lineNum">     393 </span>            :                 .offset = offsetof(lzma_options_lzma, pb),</a>
+<a name="394"><span class="lineNum">     394 </span>            :                 .u.range.min = LZMA_PB_MIN,</a>
+<a name="395"><span class="lineNum">     395 </span>            :                 .u.range.max = LZMA_PB_MAX,</a>
+<a name="396"><span class="lineNum">     396 </span>            :         }, {</a>
+<a name="397"><span class="lineNum">     397 </span>            :                 .name = &quot;mode&quot;,</a>
+<a name="398"><span class="lineNum">     398 </span>            :                 .type = OPTMAP_TYPE_LZMA_MODE,</a>
+<a name="399"><span class="lineNum">     399 </span>            :                 .flags = OPTMAP_USE_NAME_VALUE_MAP,</a>
+<a name="400"><span class="lineNum">     400 </span>            :                 .offset = offsetof(lzma_options_lzma, mode),</a>
+<a name="401"><span class="lineNum">     401 </span>            :                 .u.map = lzma12_mode_map,</a>
+<a name="402"><span class="lineNum">     402 </span>            :         }, {</a>
+<a name="403"><span class="lineNum">     403 </span>            :                 .name = &quot;nice&quot;,</a>
+<a name="404"><span class="lineNum">     404 </span>            :                 .offset = offsetof(lzma_options_lzma, nice_len),</a>
+<a name="405"><span class="lineNum">     405 </span>            :                 .u.range.min = 2,</a>
+<a name="406"><span class="lineNum">     406 </span>            :                 .u.range.max = 273,</a>
+<a name="407"><span class="lineNum">     407 </span>            :         }, {</a>
+<a name="408"><span class="lineNum">     408 </span>            :                 .name = &quot;mf&quot;,</a>
+<a name="409"><span class="lineNum">     409 </span>            :                 .type = OPTMAP_TYPE_LZMA_MATCH_FINDER,</a>
+<a name="410"><span class="lineNum">     410 </span>            :                 .flags = OPTMAP_USE_NAME_VALUE_MAP,</a>
+<a name="411"><span class="lineNum">     411 </span>            :                 .offset = offsetof(lzma_options_lzma, mf),</a>
+<a name="412"><span class="lineNum">     412 </span>            :                 .u.map = lzma12_mf_map,</a>
+<a name="413"><span class="lineNum">     413 </span>            :         }, {</a>
+<a name="414"><span class="lineNum">     414 </span>            :                 .name = &quot;depth&quot;,</a>
+<a name="415"><span class="lineNum">     415 </span>            :                 .offset = offsetof(lzma_options_lzma, depth),</a>
+<a name="416"><span class="lineNum">     416 </span>            :                 .u.range.min = 0,</a>
+<a name="417"><span class="lineNum">     417 </span>            :                 .u.range.max = UINT32_MAX,</a>
+<a name="418"><span class="lineNum">     418 </span>            :         }</a>
+<a name="419"><span class="lineNum">     419 </span>            : };</a>
+<a name="420"><span class="lineNum">     420 </span>            : </a>
+<a name="421"><span class="lineNum">     421 </span>            : </a>
+<a name="422"><span class="lineNum">     422 </span>            : static const char *</a>
+<a name="423"><span class="lineNum">     423 </span><span class="lineNoCov">          0 : parse_lzma12(const char **const str, const char *str_end, void *filter_options)</span></a>
+<a name="424"><span class="lineNum">     424 </span>            : {</a>
+<a name="425"><span class="lineNum">     425 </span><span class="lineNoCov">          0 :         lzma_options_lzma *opts = filter_options;</span></a>
+<a name="426"><span class="lineNum">     426 </span>            : </a>
+<a name="427"><span class="lineNum">     427 </span>            :         // It cannot fail.</a>
+<a name="428"><span class="lineNum">     428 </span><span class="lineNoCov">          0 :         const bool preset_ret = lzma_lzma_preset(opts, LZMA_PRESET_DEFAULT);</span></a>
+<a name="429"><span class="lineNum">     429 </span><span class="lineNoCov">          0 :         assert(!preset_ret);</span></a>
+<a name="430"><span class="lineNum">     430 </span><span class="lineNoCov">          0 :         (void)preset_ret;</span></a>
+<a name="431"><span class="lineNum">     431 </span>            : </a>
+<a name="432"><span class="lineNum">     432 </span><span class="lineNoCov">          0 :         const char *errmsg = parse_options(str, str_end, filter_options,</span></a>
+<a name="433"><span class="lineNum">     433 </span>            :                         lzma12_optmap, ARRAY_SIZE(lzma12_optmap));</a>
+<a name="434"><span class="lineNum">     434 </span><span class="lineNoCov">          0 :         if (errmsg != NULL)</span></a>
+<a name="435"><span class="lineNum">     435 </span>            :                 return errmsg;</a>
+<a name="436"><span class="lineNum">     436 </span>            : </a>
+<a name="437"><span class="lineNum">     437 </span><span class="lineNoCov">          0 :         if (opts-&gt;lc + opts-&gt;lp &gt; LZMA_LCLP_MAX)</span></a>
+<a name="438"><span class="lineNum">     438 </span><span class="lineNoCov">          0 :                 return &quot;The sum of lc and lp must not exceed 4&quot;;</span></a>
+<a name="439"><span class="lineNum">     439 </span>            : </a>
+<a name="440"><span class="lineNum">     440 </span>            :         return NULL;</a>
+<a name="441"><span class="lineNum">     441 </span>            : }</a>
+<a name="442"><span class="lineNum">     442 </span>            : </a>
+<a name="443"><span class="lineNum">     443 </span>            : </a>
+<a name="444"><span class="lineNum">     444 </span>            : /////////////////////////////////////////</a>
+<a name="445"><span class="lineNum">     445 </span>            : // Generic parsing and stringification //</a>
+<a name="446"><span class="lineNum">     446 </span>            : /////////////////////////////////////////</a>
+<a name="447"><span class="lineNum">     447 </span>            : </a>
+<a name="448"><span class="lineNum">     448 </span>            : static const struct {</a>
+<a name="449"><span class="lineNum">     449 </span>            :         /// Name of the filter</a>
+<a name="450"><span class="lineNum">     450 </span>            :         char name[NAME_LEN_MAX + 1];</a>
+<a name="451"><span class="lineNum">     451 </span>            : </a>
+<a name="452"><span class="lineNum">     452 </span>            :         /// For lzma_str_to_filters:</a>
+<a name="453"><span class="lineNum">     453 </span>            :         /// Size of the filter-specific options structure.</a>
+<a name="454"><span class="lineNum">     454 </span>            :         uint32_t opts_size;</a>
+<a name="455"><span class="lineNum">     455 </span>            : </a>
+<a name="456"><span class="lineNum">     456 </span>            :         /// Filter ID</a>
+<a name="457"><span class="lineNum">     457 </span>            :         lzma_vli id;</a>
+<a name="458"><span class="lineNum">     458 </span>            : </a>
+<a name="459"><span class="lineNum">     459 </span>            :         /// For lzma_str_to_filters:</a>
+<a name="460"><span class="lineNum">     460 </span>            :         /// Function to parse the filter-specific options. The filter_options</a>
+<a name="461"><span class="lineNum">     461 </span>            :         /// will already have been allocated using lzma_alloc_zero().</a>
+<a name="462"><span class="lineNum">     462 </span>            :         const char *(*parse)(const char **str, const char *str_end,</a>
+<a name="463"><span class="lineNum">     463 </span>            :                         void *filter_options);</a>
+<a name="464"><span class="lineNum">     464 </span>            : </a>
+<a name="465"><span class="lineNum">     465 </span>            :         /// For lzma_str_from_filters:</a>
+<a name="466"><span class="lineNum">     466 </span>            :         /// If the flag LZMA_STR_ENCODER is used then the first</a>
+<a name="467"><span class="lineNum">     467 </span>            :         /// strfy_encoder elements of optmap are stringified.</a>
+<a name="468"><span class="lineNum">     468 </span>            :         /// With LZMA_STR_DECODER strfy_decoder is used.</a>
+<a name="469"><span class="lineNum">     469 </span>            :         /// Currently encoders use all options that decoders do but if</a>
+<a name="470"><span class="lineNum">     470 </span>            :         /// that changes then this needs to be changed too, for example,</a>
+<a name="471"><span class="lineNum">     471 </span>            :         /// add a new OPTMAP flag to skip printing some decoder-only options.</a>
+<a name="472"><span class="lineNum">     472 </span>            :         const option_map *optmap;</a>
+<a name="473"><span class="lineNum">     473 </span>            :         uint8_t strfy_encoder;</a>
+<a name="474"><span class="lineNum">     474 </span>            :         uint8_t strfy_decoder;</a>
+<a name="475"><span class="lineNum">     475 </span>            : </a>
+<a name="476"><span class="lineNum">     476 </span>            :         /// For lzma_str_from_filters:</a>
+<a name="477"><span class="lineNum">     477 </span>            :         /// If true, lzma_filter.options is allowed to be NULL. In that case,</a>
+<a name="478"><span class="lineNum">     478 </span>            :         /// only the filter name is printed without any options.</a>
+<a name="479"><span class="lineNum">     479 </span>            :         bool allow_null;</a>
+<a name="480"><span class="lineNum">     480 </span>            : </a>
+<a name="481"><span class="lineNum">     481 </span>            : } filter_name_map[] = {</a>
+<a name="482"><span class="lineNum">     482 </span>            : #if defined (HAVE_ENCODER_LZMA1) || defined(HAVE_DECODER_LZMA1)</a>
+<a name="483"><span class="lineNum">     483 </span>            :         { &quot;lzma1&quot;,        sizeof(lzma_options_lzma),  LZMA_FILTER_LZMA1,</a>
+<a name="484"><span class="lineNum">     484 </span>            :           &amp;parse_lzma12,  lzma12_optmap, 9, 5, false },</a>
+<a name="485"><span class="lineNum">     485 </span>            : #endif</a>
+<a name="486"><span class="lineNum">     486 </span>            : </a>
+<a name="487"><span class="lineNum">     487 </span>            : #if defined(HAVE_ENCODER_LZMA2) || defined(HAVE_DECODER_LZMA2)</a>
+<a name="488"><span class="lineNum">     488 </span>            :         { &quot;lzma2&quot;,        sizeof(lzma_options_lzma),  LZMA_FILTER_LZMA2,</a>
+<a name="489"><span class="lineNum">     489 </span>            :           &amp;parse_lzma12,  lzma12_optmap, 9, 2, false },</a>
+<a name="490"><span class="lineNum">     490 </span>            : #endif</a>
+<a name="491"><span class="lineNum">     491 </span>            : </a>
+<a name="492"><span class="lineNum">     492 </span>            : #if defined(HAVE_ENCODER_X86) || defined(HAVE_DECODER_X86)</a>
+<a name="493"><span class="lineNum">     493 </span>            :         { &quot;x86&quot;,          sizeof(lzma_options_bcj),   LZMA_FILTER_X86,</a>
+<a name="494"><span class="lineNum">     494 </span>            :           &amp;parse_bcj,     bcj_optmap, 1, 1, true },</a>
+<a name="495"><span class="lineNum">     495 </span>            : #endif</a>
+<a name="496"><span class="lineNum">     496 </span>            : </a>
+<a name="497"><span class="lineNum">     497 </span>            : #if defined(HAVE_ENCODER_ARM) || defined(HAVE_DECODER_ARM)</a>
+<a name="498"><span class="lineNum">     498 </span>            :         { &quot;arm&quot;,          sizeof(lzma_options_bcj),   LZMA_FILTER_ARM,</a>
+<a name="499"><span class="lineNum">     499 </span>            :           &amp;parse_bcj,     bcj_optmap, 1, 1, true },</a>
+<a name="500"><span class="lineNum">     500 </span>            : #endif</a>
+<a name="501"><span class="lineNum">     501 </span>            : </a>
+<a name="502"><span class="lineNum">     502 </span>            : #if defined(HAVE_ENCODER_ARMTHUMB) || defined(HAVE_DECODER_ARMTHUMB)</a>
+<a name="503"><span class="lineNum">     503 </span>            :         { &quot;armthumb&quot;,     sizeof(lzma_options_bcj),   LZMA_FILTER_ARMTHUMB,</a>
+<a name="504"><span class="lineNum">     504 </span>            :           &amp;parse_bcj,     bcj_optmap, 1, 1, true },</a>
+<a name="505"><span class="lineNum">     505 </span>            : #endif</a>
+<a name="506"><span class="lineNum">     506 </span>            : </a>
+<a name="507"><span class="lineNum">     507 </span>            : #if defined(HAVE_ENCODER_ARM64) || defined(HAVE_DECODER_ARM64)</a>
+<a name="508"><span class="lineNum">     508 </span>            :         { &quot;arm64&quot;,        sizeof(lzma_options_bcj),   LZMA_FILTER_ARM64,</a>
+<a name="509"><span class="lineNum">     509 </span>            :           &amp;parse_bcj,     bcj_optmap, 1, 1, true },</a>
+<a name="510"><span class="lineNum">     510 </span>            : #endif</a>
+<a name="511"><span class="lineNum">     511 </span>            : </a>
+<a name="512"><span class="lineNum">     512 </span>            : #if defined(HAVE_ENCODER_POWERPC) || defined(HAVE_DECODER_POWERPC)</a>
+<a name="513"><span class="lineNum">     513 </span>            :         { &quot;powerpc&quot;,      sizeof(lzma_options_bcj),   LZMA_FILTER_POWERPC,</a>
+<a name="514"><span class="lineNum">     514 </span>            :           &amp;parse_bcj,     bcj_optmap, 1, 1, true },</a>
+<a name="515"><span class="lineNum">     515 </span>            : #endif</a>
+<a name="516"><span class="lineNum">     516 </span>            : </a>
+<a name="517"><span class="lineNum">     517 </span>            : #if defined(HAVE_ENCODER_IA64) || defined(HAVE_DECODER_IA64)</a>
+<a name="518"><span class="lineNum">     518 </span>            :         { &quot;ia64&quot;,         sizeof(lzma_options_bcj),   LZMA_FILTER_IA64,</a>
+<a name="519"><span class="lineNum">     519 </span>            :           &amp;parse_bcj,     bcj_optmap, 1, 1, true },</a>
+<a name="520"><span class="lineNum">     520 </span>            : #endif</a>
+<a name="521"><span class="lineNum">     521 </span>            : </a>
+<a name="522"><span class="lineNum">     522 </span>            : #if defined(HAVE_ENCODER_SPARC) || defined(HAVE_DECODER_SPARC)</a>
+<a name="523"><span class="lineNum">     523 </span>            :         { &quot;sparc&quot;,        sizeof(lzma_options_bcj),   LZMA_FILTER_SPARC,</a>
+<a name="524"><span class="lineNum">     524 </span>            :           &amp;parse_bcj,     bcj_optmap, 1, 1, true },</a>
+<a name="525"><span class="lineNum">     525 </span>            : #endif</a>
+<a name="526"><span class="lineNum">     526 </span>            : </a>
+<a name="527"><span class="lineNum">     527 </span>            : #if defined(HAVE_ENCODER_DELTA) || defined(HAVE_DECODER_DELTA)</a>
+<a name="528"><span class="lineNum">     528 </span>            :         { &quot;delta&quot;,        sizeof(lzma_options_delta), LZMA_FILTER_DELTA,</a>
+<a name="529"><span class="lineNum">     529 </span>            :           &amp;parse_delta,   delta_optmap, 1, 1, false },</a>
+<a name="530"><span class="lineNum">     530 </span>            : #endif</a>
+<a name="531"><span class="lineNum">     531 </span>            : };</a>
+<a name="532"><span class="lineNum">     532 </span>            : </a>
+<a name="533"><span class="lineNum">     533 </span>            : </a>
+<a name="534"><span class="lineNum">     534 </span>            : /// Decodes options from a string for one filter (name1=value1,name2=value2).</a>
+<a name="535"><span class="lineNum">     535 </span>            : /// Caller must have allocated memory for filter_options already and set</a>
+<a name="536"><span class="lineNum">     536 </span>            : /// the initial default values. This is called from the filter-specific</a>
+<a name="537"><span class="lineNum">     537 </span>            : /// parse_* functions.</a>
+<a name="538"><span class="lineNum">     538 </span>            : ///</a>
+<a name="539"><span class="lineNum">     539 </span>            : /// The input string starts at *str and the address in str_end is the first</a>
+<a name="540"><span class="lineNum">     540 </span>            : /// char that is not part of the string anymore. So no '\0' terminator is</a>
+<a name="541"><span class="lineNum">     541 </span>            : /// used. *str is advanced every time something has been decoded successfully.</a>
+<a name="542"><span class="lineNum">     542 </span>            : static const char *</a>
+<a name="543"><span class="lineNum">     543 </span><span class="lineNoCov">          0 : parse_options(const char **const str, const char *str_end,</span></a>
+<a name="544"><span class="lineNum">     544 </span>            :                 void *filter_options,</a>
+<a name="545"><span class="lineNum">     545 </span>            :                 const option_map *const optmap, const size_t optmap_size)</a>
+<a name="546"><span class="lineNum">     546 </span>            : {</a>
+<a name="547"><span class="lineNum">     547 </span><span class="lineNoCov">          0 :         while (*str &lt; str_end &amp;&amp; **str != '\0') {</span></a>
+<a name="548"><span class="lineNum">     548 </span>            :                 // Each option is of the form name=value.</a>
+<a name="549"><span class="lineNum">     549 </span>            :                 // Commas (',') separate options. Extra commas are ignored.</a>
+<a name="550"><span class="lineNum">     550 </span>            :                 // Ignoring extra commas makes it simpler if an optional</a>
+<a name="551"><span class="lineNum">     551 </span>            :                 // option stored in a shell variable which can be empty.</a>
+<a name="552"><span class="lineNum">     552 </span><span class="lineNoCov">          0 :                 if (**str == ',') {</span></a>
+<a name="553"><span class="lineNum">     553 </span><span class="lineNoCov">          0 :                         ++*str;</span></a>
+<a name="554"><span class="lineNum">     554 </span><span class="lineNoCov">          0 :                         continue;</span></a>
+<a name="555"><span class="lineNum">     555 </span>            :                 }</a>
+<a name="556"><span class="lineNum">     556 </span>            : </a>
+<a name="557"><span class="lineNum">     557 </span>            :                 // Find where the next name=value ends.</a>
+<a name="558"><span class="lineNum">     558 </span><span class="lineNoCov">          0 :                 const size_t str_len = (size_t)(str_end - *str);</span></a>
+<a name="559"><span class="lineNum">     559 </span><span class="lineNoCov">          0 :                 const char *name_eq_value_end = memchr(*str, ',', str_len);</span></a>
+<a name="560"><span class="lineNum">     560 </span><span class="lineNoCov">          0 :                 if (name_eq_value_end == NULL)</span></a>
+<a name="561"><span class="lineNum">     561 </span><span class="lineNoCov">          0 :                         name_eq_value_end = str_end;</span></a>
+<a name="562"><span class="lineNum">     562 </span>            : </a>
+<a name="563"><span class="lineNum">     563 </span><span class="lineNoCov">          0 :                 const char *equals_sign = memchr(*str, '=',</span></a>
+<a name="564"><span class="lineNum">     564 </span><span class="lineNoCov">          0 :                                 (size_t)(name_eq_value_end - *str));</span></a>
+<a name="565"><span class="lineNum">     565 </span>            : </a>
+<a name="566"><span class="lineNum">     566 </span>            :                 // Fail if the '=' wasn't found or the option name is missing</a>
+<a name="567"><span class="lineNum">     567 </span>            :                 // (the first char is '=').</a>
+<a name="568"><span class="lineNum">     568 </span><span class="lineNoCov">          0 :                 if (equals_sign == NULL || **str == '=')</span></a>
+<a name="569"><span class="lineNum">     569 </span>            :                         return &quot;Options must be 'name=value' pairs separated &quot;</a>
+<a name="570"><span class="lineNum">     570 </span>            :                                         &quot;with commas&quot;;</a>
+<a name="571"><span class="lineNum">     571 </span>            : </a>
+<a name="572"><span class="lineNum">     572 </span>            :                 // Reject a too long option name so that the memcmp()</a>
+<a name="573"><span class="lineNum">     573 </span>            :                 // in the loop below won't read past the end of the</a>
+<a name="574"><span class="lineNum">     574 </span>            :                 // string in optmap[i].name.</a>
+<a name="575"><span class="lineNum">     575 </span><span class="lineNoCov">          0 :                 const size_t name_len = (size_t)(equals_sign - *str);</span></a>
+<a name="576"><span class="lineNum">     576 </span><span class="lineNoCov">          0 :                 if (name_len &gt; NAME_LEN_MAX)</span></a>
+<a name="577"><span class="lineNum">     577 </span>            :                         return &quot;Unknown option name&quot;;</a>
+<a name="578"><span class="lineNum">     578 </span>            : </a>
+<a name="579"><span class="lineNum">     579 </span>            :                 // Find the option name from optmap[].</a>
+<a name="580"><span class="lineNum">     580 </span>            :                 size_t i = 0;</a>
+<a name="581"><span class="lineNum">     581 </span><span class="lineNoCov">          0 :                 while (true) {</span></a>
+<a name="582"><span class="lineNum">     582 </span><span class="lineNoCov">          0 :                         if (i == optmap_size)</span></a>
+<a name="583"><span class="lineNum">     583 </span>            :                                 return &quot;Unknown option name&quot;;</a>
+<a name="584"><span class="lineNum">     584 </span>            : </a>
+<a name="585"><span class="lineNum">     585 </span><span class="lineNoCov">          0 :                         if (memcmp(*str, optmap[i].name, name_len) == 0</span></a>
+<a name="586"><span class="lineNum">     586 </span><span class="lineNoCov">          0 :                                         &amp;&amp; optmap[i].name[name_len] == '\0')</span></a>
+<a name="587"><span class="lineNum">     587 </span>            :                                 break;</a>
+<a name="588"><span class="lineNum">     588 </span>            : </a>
+<a name="589"><span class="lineNum">     589 </span><span class="lineNoCov">          0 :                         ++i;</span></a>
+<a name="590"><span class="lineNum">     590 </span>            :                 }</a>
+<a name="591"><span class="lineNum">     591 </span>            : </a>
+<a name="592"><span class="lineNum">     592 </span>            :                 // The input string is good at least until the start of</a>
+<a name="593"><span class="lineNum">     593 </span>            :                 // the option value.</a>
+<a name="594"><span class="lineNum">     594 </span><span class="lineNoCov">          0 :                 *str = equals_sign + 1;</span></a>
+<a name="595"><span class="lineNum">     595 </span>            : </a>
+<a name="596"><span class="lineNum">     596 </span>            :                 // The code assumes that the option value isn't an empty</a>
+<a name="597"><span class="lineNum">     597 </span>            :                 // string so check it here.</a>
+<a name="598"><span class="lineNum">     598 </span><span class="lineNoCov">          0 :                 const size_t value_len = (size_t)(name_eq_value_end - *str);</span></a>
+<a name="599"><span class="lineNum">     599 </span><span class="lineNoCov">          0 :                 if (value_len == 0)</span></a>
+<a name="600"><span class="lineNum">     600 </span>            :                         return &quot;Option value cannot be empty&quot;;</a>
+<a name="601"><span class="lineNum">     601 </span>            : </a>
+<a name="602"><span class="lineNum">     602 </span>            :                 // LZMA1/2 preset has its own parsing function.</a>
+<a name="603"><span class="lineNum">     603 </span><span class="lineNoCov">          0 :                 if (optmap[i].type == OPTMAP_TYPE_LZMA_PRESET) {</span></a>
+<a name="604"><span class="lineNum">     604 </span><span class="lineNoCov">          0 :                         const char *errmsg = set_lzma12_preset(str,</span></a>
+<a name="605"><span class="lineNum">     605 </span>            :                                         name_eq_value_end, filter_options);</a>
+<a name="606"><span class="lineNum">     606 </span><span class="lineNoCov">          0 :                         if (errmsg != NULL)</span></a>
+<a name="607"><span class="lineNum">     607 </span><span class="lineNoCov">          0 :                                 return errmsg;</span></a>
+<a name="608"><span class="lineNum">     608 </span>            : </a>
+<a name="609"><span class="lineNum">     609 </span><span class="lineNoCov">          0 :                         continue;</span></a>
+<a name="610"><span class="lineNum">     610 </span>            :                 }</a>
+<a name="611"><span class="lineNum">     611 </span>            : </a>
+<a name="612"><span class="lineNum">     612 </span>            :                 // It's an integer value.</a>
+<a name="613"><span class="lineNum">     613 </span><span class="lineNoCov">          0 :                 uint32_t v;</span></a>
+<a name="614"><span class="lineNum">     614 </span><span class="lineNoCov">          0 :                 if (optmap[i].flags &amp; OPTMAP_USE_NAME_VALUE_MAP) {</span></a>
+<a name="615"><span class="lineNum">     615 </span>            :                         // The integer is picked from a string-to-integer map.</a>
+<a name="616"><span class="lineNum">     616 </span>            :                         //</a>
+<a name="617"><span class="lineNum">     617 </span>            :                         // Reject a too long value string so that the memcmp()</a>
+<a name="618"><span class="lineNum">     618 </span>            :                         // in the loop below won't read past the end of the</a>
+<a name="619"><span class="lineNum">     619 </span>            :                         // string in optmap[i].u.map[j].name.</a>
+<a name="620"><span class="lineNum">     620 </span><span class="lineNoCov">          0 :                         if (value_len &gt; NAME_LEN_MAX)</span></a>
+<a name="621"><span class="lineNum">     621 </span>            :                                 return &quot;Invalid option value&quot;;</a>
+<a name="622"><span class="lineNum">     622 </span>            : </a>
+<a name="623"><span class="lineNum">     623 </span><span class="lineNoCov">          0 :                         const name_value_map *map = optmap[i].u.map;</span></a>
+<a name="624"><span class="lineNum">     624 </span><span class="lineNoCov">          0 :                         size_t j = 0;</span></a>
+<a name="625"><span class="lineNum">     625 </span><span class="lineNoCov">          0 :                         while (true) {</span></a>
+<a name="626"><span class="lineNum">     626 </span>            :                                 // The array is terminated with an empty name.</a>
+<a name="627"><span class="lineNum">     627 </span><span class="lineNoCov">          0 :                                 if (map[j].name[0] == '\0')</span></a>
+<a name="628"><span class="lineNum">     628 </span>            :                                         return &quot;Invalid option value&quot;;</a>
+<a name="629"><span class="lineNum">     629 </span>            : </a>
+<a name="630"><span class="lineNum">     630 </span><span class="lineNoCov">          0 :                                 if (memcmp(*str, map[j].name, value_len) == 0</span></a>
+<a name="631"><span class="lineNum">     631 </span><span class="lineNoCov">          0 :                                                 &amp;&amp; map[j].name[value_len]</span></a>
+<a name="632"><span class="lineNum">     632 </span>            :                                                         == '\0') {</a>
+<a name="633"><span class="lineNum">     633 </span><span class="lineNoCov">          0 :                                         v = map[j].value;</span></a>
+<a name="634"><span class="lineNum">     634 </span><span class="lineNoCov">          0 :                                         break;</span></a>
+<a name="635"><span class="lineNum">     635 </span>            :                                 }</a>
+<a name="636"><span class="lineNum">     636 </span>            : </a>
+<a name="637"><span class="lineNum">     637 </span><span class="lineNoCov">          0 :                                 ++j;</span></a>
+<a name="638"><span class="lineNum">     638 </span>            :                         }</a>
+<a name="639"><span class="lineNum">     639 </span><span class="lineNoCov">          0 :                 } else if (**str &lt; '0' || **str &gt; '9') {</span></a>
+<a name="640"><span class="lineNum">     640 </span>            :                         // Note that &quot;max&quot; isn't supported while it is</a>
+<a name="641"><span class="lineNum">     641 </span>            :                         // supported in xz. It's not useful here.</a>
+<a name="642"><span class="lineNum">     642 </span>            :                         return &quot;Value is not a non-negative decimal integer&quot;;</a>
+<a name="643"><span class="lineNum">     643 </span>            :                 } else {</a>
+<a name="644"><span class="lineNum">     644 </span>            :                         // strtoul() has locale-specific behavior so it cannot</a>
+<a name="645"><span class="lineNum">     645 </span>            :                         // be relied on to get reproducible results since we</a>
+<a name="646"><span class="lineNum">     646 </span>            :                         // cannot change the locate in a thread-safe library.</a>
+<a name="647"><span class="lineNum">     647 </span>            :                         // It also needs '\0'-termination.</a>
+<a name="648"><span class="lineNum">     648 </span>            :                         //</a>
+<a name="649"><span class="lineNum">     649 </span>            :                         // Use a temporary pointer so that *str will point</a>
+<a name="650"><span class="lineNum">     650 </span>            :                         // to the beginning of the value string in case</a>
+<a name="651"><span class="lineNum">     651 </span>            :                         // an error occurs.</a>
+<a name="652"><span class="lineNum">     652 </span>            :                         const char *p = *str;</a>
+<a name="653"><span class="lineNum">     653 </span>            :                         v = 0;</a>
+<a name="654"><span class="lineNum">     654 </span><span class="lineNoCov">          0 :                         do {</span></a>
+<a name="655"><span class="lineNum">     655 </span><span class="lineNoCov">          0 :                                 if (v &gt; UINT32_MAX / 10)</span></a>
+<a name="656"><span class="lineNum">     656 </span>            :                                         return &quot;Value out of range&quot;;</a>
+<a name="657"><span class="lineNum">     657 </span>            : </a>
+<a name="658"><span class="lineNum">     658 </span><span class="lineNoCov">          0 :                                 v *= 10;</span></a>
+<a name="659"><span class="lineNum">     659 </span>            : </a>
+<a name="660"><span class="lineNum">     660 </span><span class="lineNoCov">          0 :                                 const uint32_t add = (uint32_t)(*p - '0');</span></a>
+<a name="661"><span class="lineNum">     661 </span><span class="lineNoCov">          0 :                                 if (UINT32_MAX - add &lt; v)</span></a>
+<a name="662"><span class="lineNum">     662 </span>            :                                         return &quot;Value out of range&quot;;</a>
+<a name="663"><span class="lineNum">     663 </span>            : </a>
+<a name="664"><span class="lineNum">     664 </span><span class="lineNoCov">          0 :                                 v += add;</span></a>
+<a name="665"><span class="lineNum">     665 </span><span class="lineNoCov">          0 :                                 ++p;</span></a>
+<a name="666"><span class="lineNum">     666 </span><span class="lineNoCov">          0 :                         } while (p &lt; name_eq_value_end</span></a>
+<a name="667"><span class="lineNum">     667 </span><span class="lineNoCov">          0 :                                         &amp;&amp; *p &gt;= '0' &amp;&amp; *p &lt;= '9');</span></a>
+<a name="668"><span class="lineNum">     668 </span>            : </a>
+<a name="669"><span class="lineNum">     669 </span><span class="lineNoCov">          0 :                         if (p &lt; name_eq_value_end) {</span></a>
+<a name="670"><span class="lineNum">     670 </span>            :                                 // Remember this position so that it can be</a>
+<a name="671"><span class="lineNum">     671 </span>            :                                 // used for error messages that are</a>
+<a name="672"><span class="lineNum">     672 </span>            :                                 // specifically about the suffix. (Out of</a>
+<a name="673"><span class="lineNum">     673 </span>            :                                 // range values are about the whole value</a>
+<a name="674"><span class="lineNum">     674 </span>            :                                 // and those error messages point to the</a>
+<a name="675"><span class="lineNum">     675 </span>            :                                 // beginning of the number part,</a>
+<a name="676"><span class="lineNum">     676 </span>            :                                 // not to the suffix.)</a>
+<a name="677"><span class="lineNum">     677 </span><span class="lineNoCov">          0 :                                 const char *multiplier_start = p;</span></a>
+<a name="678"><span class="lineNum">     678 </span>            : </a>
+<a name="679"><span class="lineNum">     679 </span>            :                                 // If multiplier suffix shouldn't be used</a>
+<a name="680"><span class="lineNum">     680 </span>            :                                 // then don't allow them even if the value</a>
+<a name="681"><span class="lineNum">     681 </span>            :                                 // would stay within limits. This is a somewhat</a>
+<a name="682"><span class="lineNum">     682 </span>            :                                 // unnecessary check but it rejects silly</a>
+<a name="683"><span class="lineNum">     683 </span>            :                                 // things like lzma2:pb=0MiB which xz allows.</a>
+<a name="684"><span class="lineNum">     684 </span><span class="lineNoCov">          0 :                                 if ((optmap[i].flags &amp; OPTMAP_USE_BYTE_SUFFIX)</span></a>
+<a name="685"><span class="lineNum">     685 </span>            :                                                 == 0) {</a>
+<a name="686"><span class="lineNum">     686 </span><span class="lineNoCov">          0 :                                         *str = multiplier_start;</span></a>
+<a name="687"><span class="lineNum">     687 </span><span class="lineNoCov">          0 :                                         return &quot;This option does not support &quot;</span></a>
+<a name="688"><span class="lineNum">     688 </span>            :                                                 &quot;any integer suffixes&quot;;</a>
+<a name="689"><span class="lineNum">     689 </span>            :                                 }</a>
+<a name="690"><span class="lineNum">     690 </span>            : </a>
+<a name="691"><span class="lineNum">     691 </span><span class="lineNoCov">          0 :                                 uint32_t shift;</span></a>
+<a name="692"><span class="lineNum">     692 </span>            : </a>
+<a name="693"><span class="lineNum">     693 </span><span class="lineNoCov">          0 :                                 switch (*p) {</span></a>
+<a name="694"><span class="lineNum">     694 </span>            :                                 case 'k':</a>
+<a name="695"><span class="lineNum">     695 </span>            :                                 case 'K':</a>
+<a name="696"><span class="lineNum">     696 </span>            :                                         shift = 10;</a>
+<a name="697"><span class="lineNum">     697 </span>            :                                         break;</a>
+<a name="698"><span class="lineNum">     698 </span>            : </a>
+<a name="699"><span class="lineNum">     699 </span><span class="lineNoCov">          0 :                                 case 'm':</span></a>
+<a name="700"><span class="lineNum">     700 </span>            :                                 case 'M':</a>
+<a name="701"><span class="lineNum">     701 </span><span class="lineNoCov">          0 :                                         shift = 20;</span></a>
+<a name="702"><span class="lineNum">     702 </span><span class="lineNoCov">          0 :                                         break;</span></a>
+<a name="703"><span class="lineNum">     703 </span>            : </a>
+<a name="704"><span class="lineNum">     704 </span><span class="lineNoCov">          0 :                                 case 'g':</span></a>
+<a name="705"><span class="lineNum">     705 </span>            :                                 case 'G':</a>
+<a name="706"><span class="lineNum">     706 </span><span class="lineNoCov">          0 :                                         shift = 30;</span></a>
+<a name="707"><span class="lineNum">     707 </span><span class="lineNoCov">          0 :                                         break;</span></a>
+<a name="708"><span class="lineNum">     708 </span>            : </a>
+<a name="709"><span class="lineNum">     709 </span><span class="lineNoCov">          0 :                                 default:</span></a>
+<a name="710"><span class="lineNum">     710 </span><span class="lineNoCov">          0 :                                         *str = multiplier_start;</span></a>
+<a name="711"><span class="lineNum">     711 </span><span class="lineNoCov">          0 :                                         return &quot;Invalid multiplier suffix &quot;</span></a>
+<a name="712"><span class="lineNum">     712 </span>            :                                                         &quot;(KiB, MiB, or GiB)&quot;;</a>
+<a name="713"><span class="lineNum">     713 </span>            :                                 }</a>
+<a name="714"><span class="lineNum">     714 </span>            : </a>
+<a name="715"><span class="lineNum">     715 </span><span class="lineNoCov">          0 :                                 ++p;</span></a>
+<a name="716"><span class="lineNum">     716 </span>            : </a>
+<a name="717"><span class="lineNum">     717 </span>            :                                 // Allow &quot;M&quot;, &quot;Mi&quot;, &quot;MB&quot;, &quot;MiB&quot; and the same</a>
+<a name="718"><span class="lineNum">     718 </span>            :                                 // for the other five characters from the</a>
+<a name="719"><span class="lineNum">     719 </span>            :                                 // switch-statement above. All are handled</a>
+<a name="720"><span class="lineNum">     720 </span>            :                                 // as base-2 (perhaps a mistake, perhaps not).</a>
+<a name="721"><span class="lineNum">     721 </span>            :                                 // Note that 'i' and 'B' are case sensitive.</a>
+<a name="722"><span class="lineNum">     722 </span><span class="lineNoCov">          0 :                                 if (p &lt; name_eq_value_end &amp;&amp; *p == 'i')</span></a>
+<a name="723"><span class="lineNum">     723 </span><span class="lineNoCov">          0 :                                         ++p;</span></a>
+<a name="724"><span class="lineNum">     724 </span>            : </a>
+<a name="725"><span class="lineNum">     725 </span><span class="lineNoCov">          0 :                                 if (p &lt; name_eq_value_end &amp;&amp; *p == 'B')</span></a>
+<a name="726"><span class="lineNum">     726 </span><span class="lineNoCov">          0 :                                         ++p;</span></a>
+<a name="727"><span class="lineNum">     727 </span>            : </a>
+<a name="728"><span class="lineNum">     728 </span>            :                                 // Now we must have no chars remaining.</a>
+<a name="729"><span class="lineNum">     729 </span><span class="lineNoCov">          0 :                                 if (p &lt; name_eq_value_end) {</span></a>
+<a name="730"><span class="lineNum">     730 </span><span class="lineNoCov">          0 :                                         *str = multiplier_start;</span></a>
+<a name="731"><span class="lineNum">     731 </span><span class="lineNoCov">          0 :                                         return &quot;Invalid multiplier suffix &quot;</span></a>
+<a name="732"><span class="lineNum">     732 </span>            :                                                         &quot;(KiB, MiB, or GiB)&quot;;</a>
+<a name="733"><span class="lineNum">     733 </span>            :                                 }</a>
+<a name="734"><span class="lineNum">     734 </span>            : </a>
+<a name="735"><span class="lineNum">     735 </span><span class="lineNoCov">          0 :                                 if (v &gt; (UINT32_MAX &gt;&gt; shift))</span></a>
+<a name="736"><span class="lineNum">     736 </span>            :                                         return &quot;Value out of range&quot;;</a>
+<a name="737"><span class="lineNum">     737 </span>            : </a>
+<a name="738"><span class="lineNum">     738 </span><span class="lineNoCov">          0 :                                 v &lt;&lt;= shift;</span></a>
+<a name="739"><span class="lineNum">     739 </span>            :                         }</a>
+<a name="740"><span class="lineNum">     740 </span>            : </a>
+<a name="741"><span class="lineNum">     741 </span><span class="lineNoCov">          0 :                         if (v &lt; optmap[i].u.range.min</span></a>
+<a name="742"><span class="lineNum">     742 </span><span class="lineNoCov">          0 :                                         || v &gt; optmap[i].u.range.max)</span></a>
+<a name="743"><span class="lineNum">     743 </span>            :                                 return &quot;Value out of range&quot;;</a>
+<a name="744"><span class="lineNum">     744 </span>            :                 }</a>
+<a name="745"><span class="lineNum">     745 </span>            : </a>
+<a name="746"><span class="lineNum">     746 </span>            :                 // Set the value in filter_options. Enums are handled</a>
+<a name="747"><span class="lineNum">     747 </span>            :                 // specially since the underlying type isn't the same</a>
+<a name="748"><span class="lineNum">     748 </span>            :                 // as uint32_t on all systems.</a>
+<a name="749"><span class="lineNum">     749 </span><span class="lineNoCov">          0 :                 void *ptr = (char *)filter_options + optmap[i].offset;</span></a>
+<a name="750"><span class="lineNum">     750 </span><span class="lineNoCov">          0 :                 switch (optmap[i].type) {</span></a>
+<a name="751"><span class="lineNum">     751 </span><span class="lineNoCov">          0 :                 case OPTMAP_TYPE_LZMA_MODE:</span></a>
+<a name="752"><span class="lineNum">     752 </span><span class="lineNoCov">          0 :                         *(lzma_mode *)ptr = (lzma_mode)v;</span></a>
+<a name="753"><span class="lineNum">     753 </span><span class="lineNoCov">          0 :                         break;</span></a>
+<a name="754"><span class="lineNum">     754 </span>            : </a>
+<a name="755"><span class="lineNum">     755 </span><span class="lineNoCov">          0 :                 case OPTMAP_TYPE_LZMA_MATCH_FINDER:</span></a>
+<a name="756"><span class="lineNum">     756 </span><span class="lineNoCov">          0 :                         *(lzma_match_finder *)ptr = (lzma_match_finder)v;</span></a>
+<a name="757"><span class="lineNum">     757 </span><span class="lineNoCov">          0 :                         break;</span></a>
+<a name="758"><span class="lineNum">     758 </span>            : </a>
+<a name="759"><span class="lineNum">     759 </span><span class="lineNoCov">          0 :                 default:</span></a>
+<a name="760"><span class="lineNum">     760 </span><span class="lineNoCov">          0 :                         *(uint32_t *)ptr = v;</span></a>
+<a name="761"><span class="lineNum">     761 </span><span class="lineNoCov">          0 :                         break;</span></a>
+<a name="762"><span class="lineNum">     762 </span>            :                 }</a>
+<a name="763"><span class="lineNum">     763 </span>            : </a>
+<a name="764"><span class="lineNum">     764 </span>            :                 // This option has been successfully handled.</a>
+<a name="765"><span class="lineNum">     765 </span><span class="lineNoCov">          0 :                 *str = name_eq_value_end;</span></a>
+<a name="766"><span class="lineNum">     766 </span>            :         }</a>
+<a name="767"><span class="lineNum">     767 </span>            : </a>
+<a name="768"><span class="lineNum">     768 </span>            :         // No errors.</a>
+<a name="769"><span class="lineNum">     769 </span>            :         return NULL;</a>
+<a name="770"><span class="lineNum">     770 </span>            : }</a>
+<a name="771"><span class="lineNum">     771 </span>            : </a>
+<a name="772"><span class="lineNum">     772 </span>            : </a>
+<a name="773"><span class="lineNum">     773 </span>            : /// Finds the name of the filter at the beginning of the string and</a>
+<a name="774"><span class="lineNum">     774 </span>            : /// calls filter_name_map[i].parse() to decode the filter-specific options.</a>
+<a name="775"><span class="lineNum">     775 </span>            : /// The caller must have set str_end so that exactly one filter and its</a>
+<a name="776"><span class="lineNum">     776 </span>            : /// options are present without any trailing characters.</a>
+<a name="777"><span class="lineNum">     777 </span>            : static const char *</a>
+<a name="778"><span class="lineNum">     778 </span><span class="lineNoCov">          0 : parse_filter(const char **const str, const char *str_end, lzma_filter *filter,</span></a>
+<a name="779"><span class="lineNum">     779 </span>            :                 const lzma_allocator *allocator, bool only_xz)</a>
+<a name="780"><span class="lineNum">     780 </span>            : {</a>
+<a name="781"><span class="lineNum">     781 </span>            :         // Search for a colon or equals sign that would separate the filter</a>
+<a name="782"><span class="lineNum">     782 </span>            :         // name from filter options. If neither is found, then the input</a>
+<a name="783"><span class="lineNum">     783 </span>            :         // string only contains a filter name and there are no options.</a>
+<a name="784"><span class="lineNum">     784 </span>            :         //</a>
+<a name="785"><span class="lineNum">     785 </span>            :         // First assume that a colon or equals sign won't be found:</a>
+<a name="786"><span class="lineNum">     786 </span><span class="lineNoCov">          0 :         const char *name_end = str_end;</span></a>
+<a name="787"><span class="lineNum">     787 </span><span class="lineNoCov">          0 :         const char *opts_start = str_end;</span></a>
+<a name="788"><span class="lineNum">     788 </span>            : </a>
+<a name="789"><span class="lineNum">     789 </span><span class="lineNoCov">          0 :         for (const char *p = *str; p &lt; str_end; ++p) {</span></a>
+<a name="790"><span class="lineNum">     790 </span><span class="lineNoCov">          0 :                 if (*p == ':' || *p == '=') {</span></a>
+<a name="791"><span class="lineNum">     791 </span><span class="lineNoCov">          0 :                         name_end = p;</span></a>
+<a name="792"><span class="lineNum">     792 </span>            : </a>
+<a name="793"><span class="lineNum">     793 </span>            :                         // Filter options (name1=value1,name2=value2,...)</a>
+<a name="794"><span class="lineNum">     794 </span>            :                         // begin after the colon or equals sign.</a>
+<a name="795"><span class="lineNum">     795 </span><span class="lineNoCov">          0 :                         opts_start = p + 1;</span></a>
+<a name="796"><span class="lineNum">     796 </span><span class="lineNoCov">          0 :                         break;</span></a>
+<a name="797"><span class="lineNum">     797 </span>            :                 }</a>
+<a name="798"><span class="lineNum">     798 </span>            :         }</a>
+<a name="799"><span class="lineNum">     799 </span>            : </a>
+<a name="800"><span class="lineNum">     800 </span>            :         // Reject a too long filter name so that the memcmp()</a>
+<a name="801"><span class="lineNum">     801 </span>            :         // in the loop below won't read past the end of the</a>
+<a name="802"><span class="lineNum">     802 </span>            :         // string in filter_name_map[i].name.</a>
+<a name="803"><span class="lineNum">     803 </span><span class="lineNoCov">          0 :         const size_t name_len = (size_t)(name_end - *str);</span></a>
+<a name="804"><span class="lineNum">     804 </span><span class="lineNoCov">          0 :         if (name_len &gt; NAME_LEN_MAX)</span></a>
+<a name="805"><span class="lineNum">     805 </span>            :                 return &quot;Unknown filter name&quot;;</a>
+<a name="806"><span class="lineNum">     806 </span>            : </a>
+<a name="807"><span class="lineNum">     807 </span><span class="lineNoCov">          0 :         for (size_t i = 0; i &lt; ARRAY_SIZE(filter_name_map); ++i) {</span></a>
+<a name="808"><span class="lineNum">     808 </span><span class="lineNoCov">          0 :                 if (memcmp(*str, filter_name_map[i].name, name_len) == 0</span></a>
+<a name="809"><span class="lineNum">     809 </span><span class="lineNoCov">          0 :                                 &amp;&amp; filter_name_map[i].name[name_len] == '\0') {</span></a>
+<a name="810"><span class="lineNum">     810 </span><span class="lineNoCov">          0 :                         if (only_xz &amp;&amp; filter_name_map[i].id</span></a>
+<a name="811"><span class="lineNum">     811 </span>            :                                         &gt;= LZMA_FILTER_RESERVED_START)</a>
+<a name="812"><span class="lineNum">     812 </span>            :                                 return &quot;This filter cannot be used in &quot;</a>
+<a name="813"><span class="lineNum">     813 </span>            :                                                 &quot;the .xz format&quot;;</a>
+<a name="814"><span class="lineNum">     814 </span>            : </a>
+<a name="815"><span class="lineNum">     815 </span>            :                         // Allocate the filter-specific options and</a>
+<a name="816"><span class="lineNum">     816 </span>            :                         // initialize the memory with zeros.</a>
+<a name="817"><span class="lineNum">     817 </span><span class="lineNoCov">          0 :                         void *options = lzma_alloc_zero(</span></a>
+<a name="818"><span class="lineNum">     818 </span><span class="lineNoCov">          0 :                                         filter_name_map[i].opts_size,</span></a>
+<a name="819"><span class="lineNum">     819 </span>            :                                         allocator);</a>
+<a name="820"><span class="lineNum">     820 </span><span class="lineNoCov">          0 :                         if (options == NULL)</span></a>
+<a name="821"><span class="lineNum">     821 </span>            :                                 return &quot;Memory allocation failed&quot;;</a>
+<a name="822"><span class="lineNum">     822 </span>            : </a>
+<a name="823"><span class="lineNum">     823 </span>            :                         // Filter name was found so the input string is good</a>
+<a name="824"><span class="lineNum">     824 </span>            :                         // at least this far.</a>
+<a name="825"><span class="lineNum">     825 </span><span class="lineNoCov">          0 :                         *str = opts_start;</span></a>
+<a name="826"><span class="lineNum">     826 </span>            : </a>
+<a name="827"><span class="lineNum">     827 </span><span class="lineNoCov">          0 :                         const char *errmsg = filter_name_map[i].parse(</span></a>
+<a name="828"><span class="lineNum">     828 </span>            :                                         str, str_end, options);</a>
+<a name="829"><span class="lineNum">     829 </span><span class="lineNoCov">          0 :                         if (errmsg != NULL) {</span></a>
+<a name="830"><span class="lineNum">     830 </span><span class="lineNoCov">          0 :                                 lzma_free(options, allocator);</span></a>
+<a name="831"><span class="lineNum">     831 </span><span class="lineNoCov">          0 :                                 return errmsg;</span></a>
+<a name="832"><span class="lineNum">     832 </span>            :                         }</a>
+<a name="833"><span class="lineNum">     833 </span>            : </a>
+<a name="834"><span class="lineNum">     834 </span>            :                         // *filter is modified only when parsing is successful.</a>
+<a name="835"><span class="lineNum">     835 </span><span class="lineNoCov">          0 :                         filter-&gt;id = filter_name_map[i].id;</span></a>
+<a name="836"><span class="lineNum">     836 </span><span class="lineNoCov">          0 :                         filter-&gt;options = options;</span></a>
+<a name="837"><span class="lineNum">     837 </span><span class="lineNoCov">          0 :                         return NULL;</span></a>
+<a name="838"><span class="lineNum">     838 </span>            :                 }</a>
+<a name="839"><span class="lineNum">     839 </span>            :         }</a>
+<a name="840"><span class="lineNum">     840 </span>            : </a>
+<a name="841"><span class="lineNum">     841 </span>            :         return &quot;Unknown filter name&quot;;</a>
+<a name="842"><span class="lineNum">     842 </span>            : }</a>
+<a name="843"><span class="lineNum">     843 </span>            : </a>
+<a name="844"><span class="lineNum">     844 </span>            : </a>
+<a name="845"><span class="lineNum">     845 </span>            : /// Converts the string to a filter chain (array of lzma_filter structures).</a>
+<a name="846"><span class="lineNum">     846 </span>            : ///</a>
+<a name="847"><span class="lineNum">     847 </span>            : /// *str is advanced every time something has been decoded successfully.</a>
+<a name="848"><span class="lineNum">     848 </span>            : /// This way the caller knows where in the string a possible error occurred.</a>
+<a name="849"><span class="lineNum">     849 </span>            : static const char *</a>
+<a name="850"><span class="lineNum">     850 </span><span class="lineNoCov">          0 : str_to_filters(const char **const str, lzma_filter *filters, uint32_t flags,</span></a>
+<a name="851"><span class="lineNum">     851 </span>            :                 const lzma_allocator *allocator)</a>
+<a name="852"><span class="lineNum">     852 </span>            : {</a>
+<a name="853"><span class="lineNum">     853 </span><span class="lineNoCov">          0 :         const char *errmsg;</span></a>
+<a name="854"><span class="lineNum">     854 </span>            : </a>
+<a name="855"><span class="lineNum">     855 </span>            :         // Skip leading spaces.</a>
+<a name="856"><span class="lineNum">     856 </span><span class="lineNoCov">          0 :         while (**str == ' ')</span></a>
+<a name="857"><span class="lineNum">     857 </span><span class="lineNoCov">          0 :                 ++*str;</span></a>
+<a name="858"><span class="lineNum">     858 </span>            : </a>
+<a name="859"><span class="lineNum">     859 </span><span class="lineNoCov">          0 :         if (**str == '\0')</span></a>
+<a name="860"><span class="lineNum">     860 </span>            :                 return &quot;Empty string is not allowed, &quot;</a>
+<a name="861"><span class="lineNum">     861 </span>            :                                 &quot;try \&quot;6\&quot; if a default value is needed&quot;;</a>
+<a name="862"><span class="lineNum">     862 </span>            : </a>
+<a name="863"><span class="lineNum">     863 </span>            :         // Detect the type of the string.</a>
+<a name="864"><span class="lineNum">     864 </span>            :         //</a>
+<a name="865"><span class="lineNum">     865 </span>            :         // A string beginning with a digit or a string beginning with</a>
+<a name="866"><span class="lineNum">     866 </span>            :         // one dash and a digit are treated as presets. Trailing spaces</a>
+<a name="867"><span class="lineNum">     867 </span>            :         // will be ignored too (leading spaces were already ignored above).</a>
+<a name="868"><span class="lineNum">     868 </span>            :         //</a>
+<a name="869"><span class="lineNum">     869 </span>            :         // For example, &quot;6&quot;, &quot;7  &quot;, &quot;-9e&quot;, or &quot;  -3  &quot; are treated as presets.</a>
+<a name="870"><span class="lineNum">     870 </span>            :         // Strings like &quot;-&quot; or &quot;- &quot; aren't preset.</a>
+<a name="871"><span class="lineNum">     871 </span>            : #define MY_IS_DIGIT(c) ((c) &gt;= '0' &amp;&amp; (c) &lt;= '9')</a>
+<a name="872"><span class="lineNum">     872 </span><span class="lineNoCov">          0 :         if (MY_IS_DIGIT(**str) || (**str == '-' &amp;&amp; MY_IS_DIGIT((*str)[1]))) {</span></a>
+<a name="873"><span class="lineNum">     873 </span><span class="lineNoCov">          0 :                 if (**str == '-')</span></a>
+<a name="874"><span class="lineNum">     874 </span><span class="lineNoCov">          0 :                         ++*str;</span></a>
+<a name="875"><span class="lineNum">     875 </span>            : </a>
+<a name="876"><span class="lineNum">     876 </span>            :                 // Ignore trailing spaces.</a>
+<a name="877"><span class="lineNum">     877 </span><span class="lineNoCov">          0 :                 const size_t str_len = strlen(*str);</span></a>
+<a name="878"><span class="lineNum">     878 </span><span class="lineNoCov">          0 :                 const char *str_end = memchr(*str, ' ', str_len);</span></a>
+<a name="879"><span class="lineNum">     879 </span><span class="lineNoCov">          0 :                 if (str_end != NULL) {</span></a>
+<a name="880"><span class="lineNum">     880 </span>            :                         // There is at least one trailing space. Check that</a>
+<a name="881"><span class="lineNum">     881 </span>            :                         // there are no chars other than spaces.</a>
+<a name="882"><span class="lineNum">     882 </span><span class="lineNoCov">          0 :                         for (size_t i = 1; str_end[i] != '\0'; ++i)</span></a>
+<a name="883"><span class="lineNum">     883 </span><span class="lineNoCov">          0 :                                 if (str_end[i] != ' ')</span></a>
+<a name="884"><span class="lineNum">     884 </span>            :                                         return &quot;Unsupported preset&quot;;</a>
+<a name="885"><span class="lineNum">     885 </span>            :                 } else {</a>
+<a name="886"><span class="lineNum">     886 </span>            :                         // There are no trailing spaces. Use the whole string.</a>
+<a name="887"><span class="lineNum">     887 </span><span class="lineNoCov">          0 :                         str_end = *str + str_len;</span></a>
+<a name="888"><span class="lineNum">     888 </span>            :                 }</a>
+<a name="889"><span class="lineNum">     889 </span>            : </a>
+<a name="890"><span class="lineNum">     890 </span><span class="lineNoCov">          0 :                 uint32_t preset;</span></a>
+<a name="891"><span class="lineNum">     891 </span><span class="lineNoCov">          0 :                 errmsg = parse_lzma12_preset(str, str_end, &amp;preset);</span></a>
+<a name="892"><span class="lineNum">     892 </span><span class="lineNoCov">          0 :                 if (errmsg != NULL)</span></a>
+<a name="893"><span class="lineNum">     893 </span>            :                         return errmsg;</a>
+<a name="894"><span class="lineNum">     894 </span>            : </a>
+<a name="895"><span class="lineNum">     895 </span><span class="lineNoCov">          0 :                 lzma_options_lzma *opts = lzma_alloc(sizeof(*opts), allocator);</span></a>
+<a name="896"><span class="lineNum">     896 </span><span class="lineNoCov">          0 :                 if (opts == NULL)</span></a>
+<a name="897"><span class="lineNum">     897 </span>            :                         return &quot;Memory allocation failed&quot;;</a>
+<a name="898"><span class="lineNum">     898 </span>            : </a>
+<a name="899"><span class="lineNum">     899 </span><span class="lineNoCov">          0 :                 if (lzma_lzma_preset(opts, preset)) {</span></a>
+<a name="900"><span class="lineNum">     900 </span><span class="lineNoCov">          0 :                         lzma_free(opts, allocator);</span></a>
+<a name="901"><span class="lineNum">     901 </span><span class="lineNoCov">          0 :                         return &quot;Unsupported preset&quot;;</span></a>
+<a name="902"><span class="lineNum">     902 </span>            :                 }</a>
+<a name="903"><span class="lineNum">     903 </span>            : </a>
+<a name="904"><span class="lineNum">     904 </span><span class="lineNoCov">          0 :                 filters[0].id = LZMA_FILTER_LZMA2;</span></a>
+<a name="905"><span class="lineNum">     905 </span><span class="lineNoCov">          0 :                 filters[0].options = opts;</span></a>
+<a name="906"><span class="lineNum">     906 </span><span class="lineNoCov">          0 :                 filters[1].id = LZMA_VLI_UNKNOWN;</span></a>
+<a name="907"><span class="lineNum">     907 </span><span class="lineNoCov">          0 :                 filters[1].options = NULL;</span></a>
+<a name="908"><span class="lineNum">     908 </span>            : </a>
+<a name="909"><span class="lineNum">     909 </span><span class="lineNoCov">          0 :                 return NULL;</span></a>
+<a name="910"><span class="lineNum">     910 </span>            :         }</a>
+<a name="911"><span class="lineNum">     911 </span>            : </a>
+<a name="912"><span class="lineNum">     912 </span>            :         // Not a preset so it must be a filter chain.</a>
+<a name="913"><span class="lineNum">     913 </span>            :         //</a>
+<a name="914"><span class="lineNum">     914 </span>            :         // If LZMA_STR_ALL_FILTERS isn't used we allow only filters that</a>
+<a name="915"><span class="lineNum">     915 </span>            :         // can be used in .xz.</a>
+<a name="916"><span class="lineNum">     916 </span><span class="lineNoCov">          0 :         const bool only_xz = (flags &amp; LZMA_STR_ALL_FILTERS) == 0;</span></a>
+<a name="917"><span class="lineNum">     917 </span>            : </a>
+<a name="918"><span class="lineNum">     918 </span>            :         // Use a temporary array so that we don't modify the caller-supplied</a>
+<a name="919"><span class="lineNum">     919 </span>            :         // one until we know that no errors occurred.</a>
+<a name="920"><span class="lineNum">     920 </span><span class="lineNoCov">          0 :         lzma_filter temp_filters[LZMA_FILTERS_MAX + 1];</span></a>
+<a name="921"><span class="lineNum">     921 </span>            : </a>
+<a name="922"><span class="lineNum">     922 </span><span class="lineNoCov">          0 :         size_t i = 0;</span></a>
+<a name="923"><span class="lineNum">     923 </span><span class="lineNoCov">          0 :         do {</span></a>
+<a name="924"><span class="lineNum">     924 </span><span class="lineNoCov">          0 :                 if (i == LZMA_FILTERS_MAX) {</span></a>
+<a name="925"><span class="lineNum">     925 </span><span class="lineNoCov">          0 :                         errmsg = &quot;The maximum number of filters is four&quot;;</span></a>
+<a name="926"><span class="lineNum">     926 </span><span class="lineNoCov">          0 :                         goto error;</span></a>
+<a name="927"><span class="lineNum">     927 </span>            :                 }</a>
+<a name="928"><span class="lineNum">     928 </span>            : </a>
+<a name="929"><span class="lineNum">     929 </span>            :                 // Skip &quot;--&quot; if present.</a>
+<a name="930"><span class="lineNum">     930 </span><span class="lineNoCov">          0 :                 if ((*str)[0] == '-' &amp;&amp; (*str)[1] == '-')</span></a>
+<a name="931"><span class="lineNum">     931 </span><span class="lineNoCov">          0 :                         *str += 2;</span></a>
+<a name="932"><span class="lineNum">     932 </span>            : </a>
+<a name="933"><span class="lineNum">     933 </span>            :                 // Locate the end of &quot;filter:name1=value1,name2=value2&quot;,</a>
+<a name="934"><span class="lineNum">     934 </span>            :                 // stopping at the first &quot;--&quot; or a single space.</a>
+<a name="935"><span class="lineNum">     935 </span><span class="lineNoCov">          0 :                 const char *filter_end = *str;</span></a>
+<a name="936"><span class="lineNum">     936 </span><span class="lineNoCov">          0 :                 while (filter_end[0] != '\0') {</span></a>
+<a name="937"><span class="lineNum">     937 </span><span class="lineNoCov">          0 :                         if ((filter_end[0] == '-' &amp;&amp; filter_end[1] == '-')</span></a>
+<a name="938"><span class="lineNum">     938 </span><span class="lineNoCov">          0 :                                         || filter_end[0] == ' ')</span></a>
+<a name="939"><span class="lineNum">     939 </span>            :                                 break;</a>
+<a name="940"><span class="lineNum">     940 </span>            : </a>
+<a name="941"><span class="lineNum">     941 </span><span class="lineNoCov">          0 :                         ++filter_end;</span></a>
+<a name="942"><span class="lineNum">     942 </span>            :                 }</a>
+<a name="943"><span class="lineNum">     943 </span>            : </a>
+<a name="944"><span class="lineNum">     944 </span>            :                 // Inputs that have &quot;--&quot; at the end or &quot;-- &quot; in the middle</a>
+<a name="945"><span class="lineNum">     945 </span>            :                 // will result in an empty filter name.</a>
+<a name="946"><span class="lineNum">     946 </span><span class="lineNoCov">          0 :                 if (filter_end == *str) {</span></a>
+<a name="947"><span class="lineNum">     947 </span><span class="lineNoCov">          0 :                         errmsg = &quot;Filter name is missing&quot;;</span></a>
+<a name="948"><span class="lineNum">     948 </span><span class="lineNoCov">          0 :                         goto error;</span></a>
+<a name="949"><span class="lineNum">     949 </span>            :                 }</a>
+<a name="950"><span class="lineNum">     950 </span>            : </a>
+<a name="951"><span class="lineNum">     951 </span><span class="lineNoCov">          0 :                 errmsg = parse_filter(str, filter_end, &amp;temp_filters[i],</span></a>
+<a name="952"><span class="lineNum">     952 </span>            :                                 allocator, only_xz);</a>
+<a name="953"><span class="lineNum">     953 </span><span class="lineNoCov">          0 :                 if (errmsg != NULL)</span></a>
+<a name="954"><span class="lineNum">     954 </span><span class="lineNoCov">          0 :                         goto error;</span></a>
+<a name="955"><span class="lineNum">     955 </span>            : </a>
+<a name="956"><span class="lineNum">     956 </span>            :                 // Skip trailing spaces.</a>
+<a name="957"><span class="lineNum">     957 </span><span class="lineNoCov">          0 :                 while (**str == ' ')</span></a>
+<a name="958"><span class="lineNum">     958 </span><span class="lineNoCov">          0 :                         ++*str;</span></a>
+<a name="959"><span class="lineNum">     959 </span>            : </a>
+<a name="960"><span class="lineNum">     960 </span><span class="lineNoCov">          0 :                 ++i;</span></a>
+<a name="961"><span class="lineNum">     961 </span><span class="lineNoCov">          0 :         } while (**str != '\0');</span></a>
+<a name="962"><span class="lineNum">     962 </span>            : </a>
+<a name="963"><span class="lineNum">     963 </span>            :         // Seems to be good, terminate the array so that</a>
+<a name="964"><span class="lineNum">     964 </span>            :         // basic validation can be done.</a>
+<a name="965"><span class="lineNum">     965 </span><span class="lineNoCov">          0 :         temp_filters[i].id = LZMA_VLI_UNKNOWN;</span></a>
+<a name="966"><span class="lineNum">     966 </span><span class="lineNoCov">          0 :         temp_filters[i].options = NULL;</span></a>
+<a name="967"><span class="lineNum">     967 </span>            : </a>
+<a name="968"><span class="lineNum">     968 </span>            :         // Do basic validation if the application didn't prohibit it.</a>
+<a name="969"><span class="lineNum">     969 </span><span class="lineNoCov">          0 :         if ((flags &amp; LZMA_STR_NO_VALIDATION) == 0) {</span></a>
+<a name="970"><span class="lineNum">     970 </span><span class="lineNoCov">          0 :                 size_t dummy;</span></a>
+<a name="971"><span class="lineNum">     971 </span><span class="lineNoCov">          0 :                 const lzma_ret ret = lzma_validate_chain(temp_filters, &amp;dummy);</span></a>
+<a name="972"><span class="lineNum">     972 </span><span class="lineNoCov">          0 :                 assert(ret == LZMA_OK || ret == LZMA_OPTIONS_ERROR);</span></a>
+<a name="973"><span class="lineNum">     973 </span><span class="lineNoCov">          0 :                 if (ret != LZMA_OK) {</span></a>
+<a name="974"><span class="lineNum">     974 </span><span class="lineNoCov">          0 :                         errmsg = &quot;Invalid filter chain &quot;</span></a>
+<a name="975"><span class="lineNum">     975 </span>            :                                         &quot;('lzma2' missing at the end?)&quot;;</a>
+<a name="976"><span class="lineNum">     976 </span><span class="lineNoCov">          0 :                         goto error;</span></a>
+<a name="977"><span class="lineNum">     977 </span>            :                 }</a>
+<a name="978"><span class="lineNum">     978 </span>            :         }</a>
+<a name="979"><span class="lineNum">     979 </span>            : </a>
+<a name="980"><span class="lineNum">     980 </span>            :         // All good. Copy the filters to the application supplied array.</a>
+<a name="981"><span class="lineNum">     981 </span><span class="lineNoCov">          0 :         memcpy(filters, temp_filters, (i + 1) * sizeof(lzma_filter));</span></a>
+<a name="982"><span class="lineNum">     982 </span><span class="lineNoCov">          0 :         return NULL;</span></a>
+<a name="983"><span class="lineNum">     983 </span>            : </a>
+<a name="984"><span class="lineNum">     984 </span><span class="lineNoCov">          0 : error:</span></a>
+<a name="985"><span class="lineNum">     985 </span>            :         // Free the filter options that were successfully decoded.</a>
+<a name="986"><span class="lineNum">     986 </span><span class="lineNoCov">          0 :         while (i-- &gt; 0)</span></a>
+<a name="987"><span class="lineNum">     987 </span><span class="lineNoCov">          0 :                 lzma_free(temp_filters[i].options, allocator);</span></a>
+<a name="988"><span class="lineNum">     988 </span>            : </a>
+<a name="989"><span class="lineNum">     989 </span>            :         return errmsg;</a>
+<a name="990"><span class="lineNum">     990 </span>            : }</a>
+<a name="991"><span class="lineNum">     991 </span>            : </a>
+<a name="992"><span class="lineNum">     992 </span>            : </a>
+<a name="993"><span class="lineNum">     993 </span>            : extern LZMA_API(const char *)</a>
+<a name="994"><span class="lineNum">     994 </span><span class="lineNoCov">          0 : lzma_str_to_filters(const char *str, int *error_pos, lzma_filter *filters,</span></a>
+<a name="995"><span class="lineNum">     995 </span>            :                 uint32_t flags, const lzma_allocator *allocator)</a>
+<a name="996"><span class="lineNum">     996 </span>            : {</a>
+<a name="997"><span class="lineNum">     997 </span><span class="lineNoCov">          0 :         if (str == NULL || filters == NULL)</span></a>
+<a name="998"><span class="lineNum">     998 </span>            :                 return &quot;Unexpected NULL pointer argument(s) &quot;</a>
+<a name="999"><span class="lineNum">     999 </span>            :                                 &quot;to lzma_str_to_filters()&quot;;</a>
+<a name="1000"><span class="lineNum">    1000 </span>            : </a>
+<a name="1001"><span class="lineNum">    1001 </span>            :         // Validate the flags.</a>
+<a name="1002"><span class="lineNum">    1002 </span><span class="lineNoCov">          0 :         const uint32_t supported_flags</span></a>
+<a name="1003"><span class="lineNum">    1003 </span>            :                         = LZMA_STR_ALL_FILTERS</a>
+<a name="1004"><span class="lineNum">    1004 </span>            :                         | LZMA_STR_NO_VALIDATION;</a>
+<a name="1005"><span class="lineNum">    1005 </span>            : </a>
+<a name="1006"><span class="lineNum">    1006 </span><span class="lineNoCov">          0 :         if (flags &amp; ~supported_flags)</span></a>
+<a name="1007"><span class="lineNum">    1007 </span>            :                 return &quot;Unsupported flags to lzma_str_to_filters()&quot;;</a>
+<a name="1008"><span class="lineNum">    1008 </span>            : </a>
+<a name="1009"><span class="lineNum">    1009 </span><span class="lineNoCov">          0 :         const char *used = str;</span></a>
+<a name="1010"><span class="lineNum">    1010 </span><span class="lineNoCov">          0 :         const char *errmsg = str_to_filters(&amp;used, filters, flags, allocator);</span></a>
+<a name="1011"><span class="lineNum">    1011 </span>            : </a>
+<a name="1012"><span class="lineNum">    1012 </span><span class="lineNoCov">          0 :         if (error_pos != NULL) {</span></a>
+<a name="1013"><span class="lineNum">    1013 </span><span class="lineNoCov">          0 :                 const size_t n = (size_t)(used - str);</span></a>
+<a name="1014"><span class="lineNum">    1014 </span><span class="lineNoCov">          0 :                 *error_pos = n &gt; INT_MAX ? INT_MAX : (int)n;</span></a>
+<a name="1015"><span class="lineNum">    1015 </span>            :         }</a>
+<a name="1016"><span class="lineNum">    1016 </span>            : </a>
+<a name="1017"><span class="lineNum">    1017 </span>            :         return errmsg;</a>
+<a name="1018"><span class="lineNum">    1018 </span>            : }</a>
+<a name="1019"><span class="lineNum">    1019 </span>            : </a>
+<a name="1020"><span class="lineNum">    1020 </span>            : </a>
+<a name="1021"><span class="lineNum">    1021 </span>            : /// Converts options of one filter to a string.</a>
+<a name="1022"><span class="lineNum">    1022 </span>            : ///</a>
+<a name="1023"><span class="lineNum">    1023 </span>            : /// The caller must have already put the filter name in the destination</a>
+<a name="1024"><span class="lineNum">    1024 </span>            : /// string. Since it is possible that no options will be needed, the caller</a>
+<a name="1025"><span class="lineNum">    1025 </span>            : /// won't have put a delimiter character (':' or '=') in the string yet.</a>
+<a name="1026"><span class="lineNum">    1026 </span>            : /// We will add it if at least one option will be added to the string.</a>
+<a name="1027"><span class="lineNum">    1027 </span>            : static void</a>
+<a name="1028"><span class="lineNum">    1028 </span><span class="lineNoCov">          0 : strfy_filter(lzma_str *dest, const char *delimiter,</span></a>
+<a name="1029"><span class="lineNum">    1029 </span>            :                 const option_map *optmap, size_t optmap_count,</a>
+<a name="1030"><span class="lineNum">    1030 </span>            :                 const void *filter_options)</a>
+<a name="1031"><span class="lineNum">    1031 </span>            : {</a>
+<a name="1032"><span class="lineNum">    1032 </span><span class="lineNoCov">          0 :         for (size_t i = 0; i &lt; optmap_count; ++i) {</span></a>
+<a name="1033"><span class="lineNum">    1033 </span>            :                 // No attempt is made to reverse LZMA1/2 preset.</a>
+<a name="1034"><span class="lineNum">    1034 </span><span class="lineNoCov">          0 :                 if (optmap[i].type == OPTMAP_TYPE_LZMA_PRESET)</span></a>
+<a name="1035"><span class="lineNum">    1035 </span><span class="lineNoCov">          0 :                         continue;</span></a>
+<a name="1036"><span class="lineNum">    1036 </span>            : </a>
+<a name="1037"><span class="lineNum">    1037 </span>            :                 // All options have integer values, some just are mapped</a>
+<a name="1038"><span class="lineNum">    1038 </span>            :                 // to a string with a name_value_map. LZMA1/2 preset</a>
+<a name="1039"><span class="lineNum">    1039 </span>            :                 // isn't reversed back to preset=PRESET form.</a>
+<a name="1040"><span class="lineNum">    1040 </span><span class="lineNoCov">          0 :                 uint32_t v;</span></a>
+<a name="1041"><span class="lineNum">    1041 </span><span class="lineNoCov">          0 :                 const void *ptr</span></a>
+<a name="1042"><span class="lineNum">    1042 </span><span class="lineNoCov">          0 :                         = (const char *)filter_options + optmap[i].offset;</span></a>
+<a name="1043"><span class="lineNum">    1043 </span><span class="lineNoCov">          0 :                 switch (optmap[i].type) {</span></a>
+<a name="1044"><span class="lineNum">    1044 </span><span class="lineNoCov">          0 :                         case OPTMAP_TYPE_LZMA_MODE:</span></a>
+<a name="1045"><span class="lineNum">    1045 </span><span class="lineNoCov">          0 :                                 v = *(const lzma_mode *)ptr;</span></a>
+<a name="1046"><span class="lineNum">    1046 </span><span class="lineNoCov">          0 :                                 break;</span></a>
+<a name="1047"><span class="lineNum">    1047 </span>            : </a>
+<a name="1048"><span class="lineNum">    1048 </span><span class="lineNoCov">          0 :                         case OPTMAP_TYPE_LZMA_MATCH_FINDER:</span></a>
+<a name="1049"><span class="lineNum">    1049 </span><span class="lineNoCov">          0 :                                 v = *(const lzma_match_finder *)ptr;</span></a>
+<a name="1050"><span class="lineNum">    1050 </span><span class="lineNoCov">          0 :                                 break;</span></a>
+<a name="1051"><span class="lineNum">    1051 </span>            : </a>
+<a name="1052"><span class="lineNum">    1052 </span><span class="lineNoCov">          0 :                         default:</span></a>
+<a name="1053"><span class="lineNum">    1053 </span><span class="lineNoCov">          0 :                                 v = *(const uint32_t *)ptr;</span></a>
+<a name="1054"><span class="lineNum">    1054 </span><span class="lineNoCov">          0 :                                 break;</span></a>
+<a name="1055"><span class="lineNum">    1055 </span>            :                 }</a>
+<a name="1056"><span class="lineNum">    1056 </span>            : </a>
+<a name="1057"><span class="lineNum">    1057 </span>            :                 // Skip this if this option should be omitted from</a>
+<a name="1058"><span class="lineNum">    1058 </span>            :                 // the string when the value is zero.</a>
+<a name="1059"><span class="lineNum">    1059 </span><span class="lineNoCov">          0 :                 if (v == 0 &amp;&amp; (optmap[i].flags &amp; OPTMAP_NO_STRFY_ZERO))</span></a>
+<a name="1060"><span class="lineNum">    1060 </span><span class="lineNoCov">          0 :                         continue;</span></a>
+<a name="1061"><span class="lineNum">    1061 </span>            : </a>
+<a name="1062"><span class="lineNum">    1062 </span>            :                 // Before the first option we add whatever delimiter</a>
+<a name="1063"><span class="lineNum">    1063 </span>            :                 // the caller gave us. For later options a comma is used.</a>
+<a name="1064"><span class="lineNum">    1064 </span><span class="lineNoCov">          0 :                 str_append_str(dest, delimiter);</span></a>
+<a name="1065"><span class="lineNum">    1065 </span><span class="lineNoCov">          0 :                 delimiter = &quot;,&quot;;</span></a>
+<a name="1066"><span class="lineNum">    1066 </span>            : </a>
+<a name="1067"><span class="lineNum">    1067 </span>            :                 // Add the option name and equals sign.</a>
+<a name="1068"><span class="lineNum">    1068 </span><span class="lineNoCov">          0 :                 str_append_str(dest, optmap[i].name);</span></a>
+<a name="1069"><span class="lineNum">    1069 </span><span class="lineNoCov">          0 :                 str_append_str(dest, &quot;=&quot;);</span></a>
+<a name="1070"><span class="lineNum">    1070 </span>            : </a>
+<a name="1071"><span class="lineNum">    1071 </span><span class="lineNoCov">          0 :                 if (optmap[i].flags &amp; OPTMAP_USE_NAME_VALUE_MAP) {</span></a>
+<a name="1072"><span class="lineNum">    1072 </span><span class="lineNoCov">          0 :                         const name_value_map *map = optmap[i].u.map;</span></a>
+<a name="1073"><span class="lineNum">    1073 </span><span class="lineNoCov">          0 :                         size_t j = 0;</span></a>
+<a name="1074"><span class="lineNum">    1074 </span><span class="lineNoCov">          0 :                         while (true) {</span></a>
+<a name="1075"><span class="lineNum">    1075 </span><span class="lineNoCov">          0 :                                 if (map[j].name[0] == '\0') {</span></a>
+<a name="1076"><span class="lineNum">    1076 </span><span class="lineNoCov">          0 :                                         str_append_str(dest, &quot;UNKNOWN&quot;);</span></a>
+<a name="1077"><span class="lineNum">    1077 </span><span class="lineNoCov">          0 :                                         break;</span></a>
+<a name="1078"><span class="lineNum">    1078 </span>            :                                 }</a>
+<a name="1079"><span class="lineNum">    1079 </span>            : </a>
+<a name="1080"><span class="lineNum">    1080 </span><span class="lineNoCov">          0 :                                 if (map[j].value == v) {</span></a>
+<a name="1081"><span class="lineNum">    1081 </span><span class="lineNoCov">          0 :                                         str_append_str(dest, map[j].name);</span></a>
+<a name="1082"><span class="lineNum">    1082 </span><span class="lineNoCov">          0 :                                         break;</span></a>
+<a name="1083"><span class="lineNum">    1083 </span>            :                                 }</a>
+<a name="1084"><span class="lineNum">    1084 </span>            : </a>
+<a name="1085"><span class="lineNum">    1085 </span><span class="lineNoCov">          0 :                                 ++j;</span></a>
+<a name="1086"><span class="lineNum">    1086 </span>            :                         }</a>
+<a name="1087"><span class="lineNum">    1087 </span>            :                 } else {</a>
+<a name="1088"><span class="lineNum">    1088 </span><span class="lineNoCov">          0 :                         str_append_u32(dest, v,</span></a>
+<a name="1089"><span class="lineNum">    1089 </span>            :                                 optmap[i].flags &amp; OPTMAP_USE_BYTE_SUFFIX);</a>
+<a name="1090"><span class="lineNum">    1090 </span>            :                 }</a>
+<a name="1091"><span class="lineNum">    1091 </span>            :         }</a>
+<a name="1092"><span class="lineNum">    1092 </span>            : </a>
+<a name="1093"><span class="lineNum">    1093 </span><span class="lineNoCov">          0 :         return;</span></a>
+<a name="1094"><span class="lineNum">    1094 </span>            : }</a>
+<a name="1095"><span class="lineNum">    1095 </span>            : </a>
+<a name="1096"><span class="lineNum">    1096 </span>            : </a>
+<a name="1097"><span class="lineNum">    1097 </span>            : extern LZMA_API(lzma_ret)</a>
+<a name="1098"><span class="lineNum">    1098 </span><span class="lineNoCov">          0 : lzma_str_from_filters(char **output_str, const lzma_filter *filters,</span></a>
+<a name="1099"><span class="lineNum">    1099 </span>            :                 uint32_t flags, const lzma_allocator *allocator)</a>
+<a name="1100"><span class="lineNum">    1100 </span>            : {</a>
+<a name="1101"><span class="lineNum">    1101 </span>            :         // On error *output_str is always set to NULL.</a>
+<a name="1102"><span class="lineNum">    1102 </span>            :         // Do it as the very first step.</a>
+<a name="1103"><span class="lineNum">    1103 </span><span class="lineNoCov">          0 :         if (output_str == NULL)</span></a>
+<a name="1104"><span class="lineNum">    1104 </span>            :                 return LZMA_PROG_ERROR;</a>
+<a name="1105"><span class="lineNum">    1105 </span>            : </a>
+<a name="1106"><span class="lineNum">    1106 </span><span class="lineNoCov">          0 :         *output_str = NULL;</span></a>
+<a name="1107"><span class="lineNum">    1107 </span>            : </a>
+<a name="1108"><span class="lineNum">    1108 </span><span class="lineNoCov">          0 :         if (filters == NULL)</span></a>
+<a name="1109"><span class="lineNum">    1109 </span>            :                 return LZMA_PROG_ERROR;</a>
+<a name="1110"><span class="lineNum">    1110 </span>            : </a>
+<a name="1111"><span class="lineNum">    1111 </span>            :         // Validate the flags.</a>
+<a name="1112"><span class="lineNum">    1112 </span><span class="lineNoCov">          0 :         const uint32_t supported_flags</span></a>
+<a name="1113"><span class="lineNum">    1113 </span>            :                         = LZMA_STR_ENCODER</a>
+<a name="1114"><span class="lineNum">    1114 </span>            :                         | LZMA_STR_DECODER</a>
+<a name="1115"><span class="lineNum">    1115 </span>            :                         | LZMA_STR_GETOPT_LONG</a>
+<a name="1116"><span class="lineNum">    1116 </span>            :                         | LZMA_STR_NO_SPACES;</a>
+<a name="1117"><span class="lineNum">    1117 </span>            : </a>
+<a name="1118"><span class="lineNum">    1118 </span><span class="lineNoCov">          0 :         if (flags &amp; ~supported_flags)</span></a>
+<a name="1119"><span class="lineNum">    1119 </span>            :                 return LZMA_OPTIONS_ERROR;</a>
+<a name="1120"><span class="lineNum">    1120 </span>            : </a>
+<a name="1121"><span class="lineNum">    1121 </span>            :         // There must be at least one filter.</a>
+<a name="1122"><span class="lineNum">    1122 </span><span class="lineNoCov">          0 :         if (filters[0].id == LZMA_VLI_UNKNOWN)</span></a>
+<a name="1123"><span class="lineNum">    1123 </span>            :                 return LZMA_OPTIONS_ERROR;</a>
+<a name="1124"><span class="lineNum">    1124 </span>            : </a>
+<a name="1125"><span class="lineNum">    1125 </span>            :         // Allocate memory for the output string.</a>
+<a name="1126"><span class="lineNum">    1126 </span><span class="lineNoCov">          0 :         lzma_str dest;</span></a>
+<a name="1127"><span class="lineNum">    1127 </span><span class="lineNoCov">          0 :         return_if_error(str_init(&amp;dest, allocator));</span></a>
+<a name="1128"><span class="lineNum">    1128 </span>            : </a>
+<a name="1129"><span class="lineNum">    1129 </span><span class="lineNoCov">          0 :         const bool show_opts = (flags &amp; (LZMA_STR_ENCODER | LZMA_STR_DECODER));</span></a>
+<a name="1130"><span class="lineNum">    1130 </span>            : </a>
+<a name="1131"><span class="lineNum">    1131 </span><span class="lineNoCov">          0 :         const char *opt_delim = (flags &amp; LZMA_STR_GETOPT_LONG) ? &quot;=&quot; : &quot;:&quot;;</span></a>
+<a name="1132"><span class="lineNum">    1132 </span>            : </a>
+<a name="1133"><span class="lineNum">    1133 </span><span class="lineNoCov">          0 :         for (size_t i = 0; filters[i].id != LZMA_VLI_UNKNOWN; ++i) {</span></a>
+<a name="1134"><span class="lineNum">    1134 </span>            :                 // If we reach LZMA_FILTERS_MAX, then the filters array</a>
+<a name="1135"><span class="lineNum">    1135 </span>            :                 // is too large since the ID cannot be LZMA_VLI_UNKNOWN here.</a>
+<a name="1136"><span class="lineNum">    1136 </span><span class="lineNoCov">          0 :                 if (i == LZMA_FILTERS_MAX) {</span></a>
+<a name="1137"><span class="lineNum">    1137 </span><span class="lineNoCov">          0 :                         str_free(&amp;dest, allocator);</span></a>
+<a name="1138"><span class="lineNum">    1138 </span><span class="lineNoCov">          0 :                         return LZMA_OPTIONS_ERROR;</span></a>
+<a name="1139"><span class="lineNum">    1139 </span>            :                 }</a>
+<a name="1140"><span class="lineNum">    1140 </span>            : </a>
+<a name="1141"><span class="lineNum">    1141 </span>            :                 // Don't add a space between filters if the caller</a>
+<a name="1142"><span class="lineNum">    1142 </span>            :                 // doesn't want them.</a>
+<a name="1143"><span class="lineNum">    1143 </span><span class="lineNoCov">          0 :                 if (i &gt; 0 &amp;&amp; !(flags &amp; LZMA_STR_NO_SPACES))</span></a>
+<a name="1144"><span class="lineNum">    1144 </span><span class="lineNoCov">          0 :                         str_append_str(&amp;dest, &quot; &quot;);</span></a>
+<a name="1145"><span class="lineNum">    1145 </span>            : </a>
+<a name="1146"><span class="lineNum">    1146 </span>            :                 // Use dashes for xz getopt_long() compatible syntax but also</a>
+<a name="1147"><span class="lineNum">    1147 </span>            :                 // use dashes to separate filters when spaces weren't wanted.</a>
+<a name="1148"><span class="lineNum">    1148 </span><span class="lineNoCov">          0 :                 if ((flags &amp; LZMA_STR_GETOPT_LONG)</span></a>
+<a name="1149"><span class="lineNum">    1149 </span><span class="lineNoCov">          0 :                                 || (i &gt; 0 &amp;&amp; (flags &amp; LZMA_STR_NO_SPACES)))</span></a>
+<a name="1150"><span class="lineNum">    1150 </span><span class="lineNoCov">          0 :                         str_append_str(&amp;dest, &quot;--&quot;);</span></a>
+<a name="1151"><span class="lineNum">    1151 </span>            : </a>
+<a name="1152"><span class="lineNum">    1152 </span><span class="lineNoCov">          0 :                 size_t j = 0;</span></a>
+<a name="1153"><span class="lineNum">    1153 </span><span class="lineNoCov">          0 :                 while (true) {</span></a>
+<a name="1154"><span class="lineNum">    1154 </span><span class="lineNoCov">          0 :                         if (j == ARRAY_SIZE(filter_name_map)) {</span></a>
+<a name="1155"><span class="lineNum">    1155 </span>            :                                 // Filter ID in filters[i].id isn't supported.</a>
+<a name="1156"><span class="lineNum">    1156 </span><span class="lineNoCov">          0 :                                 str_free(&amp;dest, allocator);</span></a>
+<a name="1157"><span class="lineNum">    1157 </span><span class="lineNoCov">          0 :                                 return LZMA_OPTIONS_ERROR;</span></a>
+<a name="1158"><span class="lineNum">    1158 </span>            :                         }</a>
+<a name="1159"><span class="lineNum">    1159 </span>            : </a>
+<a name="1160"><span class="lineNum">    1160 </span><span class="lineNoCov">          0 :                         if (filter_name_map[j].id == filters[i].id) {</span></a>
+<a name="1161"><span class="lineNum">    1161 </span>            :                                 // Add the filter name.</a>
+<a name="1162"><span class="lineNum">    1162 </span><span class="lineNoCov">          0 :                                 str_append_str(&amp;dest, filter_name_map[j].name);</span></a>
+<a name="1163"><span class="lineNum">    1163 </span>            : </a>
+<a name="1164"><span class="lineNum">    1164 </span>            :                                 // If only the filter names were wanted then</a>
+<a name="1165"><span class="lineNum">    1165 </span>            :                                 // skip to the next filter. In this case</a>
+<a name="1166"><span class="lineNum">    1166 </span>            :                                 // .options is ignored and may be NULL even</a>
+<a name="1167"><span class="lineNum">    1167 </span>            :                                 // when the filter doesn't allow NULL options.</a>
+<a name="1168"><span class="lineNum">    1168 </span><span class="lineNoCov">          0 :                                 if (!show_opts)</span></a>
+<a name="1169"><span class="lineNum">    1169 </span>            :                                         break;</a>
+<a name="1170"><span class="lineNum">    1170 </span>            : </a>
+<a name="1171"><span class="lineNum">    1171 </span><span class="lineNoCov">          0 :                                 if (filters[i].options == NULL) {</span></a>
+<a name="1172"><span class="lineNum">    1172 </span><span class="lineNoCov">          0 :                                         if (!filter_name_map[j].allow_null) {</span></a>
+<a name="1173"><span class="lineNum">    1173 </span>            :                                                 // Filter-specific options</a>
+<a name="1174"><span class="lineNum">    1174 </span>            :                                                 // are missing but with</a>
+<a name="1175"><span class="lineNum">    1175 </span>            :                                                 // this filter the options</a>
+<a name="1176"><span class="lineNum">    1176 </span>            :                                                 // structure is mandatory.</a>
+<a name="1177"><span class="lineNum">    1177 </span><span class="lineNoCov">          0 :                                                 str_free(&amp;dest, allocator);</span></a>
+<a name="1178"><span class="lineNum">    1178 </span><span class="lineNoCov">          0 :                                                 return LZMA_OPTIONS_ERROR;</span></a>
+<a name="1179"><span class="lineNum">    1179 </span>            :                                         }</a>
+<a name="1180"><span class="lineNum">    1180 </span>            : </a>
+<a name="1181"><span class="lineNum">    1181 </span>            :                                         // .options is allowed to be NULL.</a>
+<a name="1182"><span class="lineNum">    1182 </span>            :                                         // There is no need to add any</a>
+<a name="1183"><span class="lineNum">    1183 </span>            :                                         // options to the string.</a>
+<a name="1184"><span class="lineNum">    1184 </span>            :                                         break;</a>
+<a name="1185"><span class="lineNum">    1185 </span>            :                                 }</a>
+<a name="1186"><span class="lineNum">    1186 </span>            : </a>
+<a name="1187"><span class="lineNum">    1187 </span>            :                                 // Options structure is available. Add</a>
+<a name="1188"><span class="lineNum">    1188 </span>            :                                 // the filter options to the string.</a>
+<a name="1189"><span class="lineNum">    1189 </span><span class="lineNoCov">          0 :                                 const size_t optmap_count</span></a>
+<a name="1190"><span class="lineNum">    1190 </span><span class="lineNoCov">          0 :                                         = (flags &amp; LZMA_STR_ENCODER)</span></a>
+<a name="1191"><span class="lineNum">    1191 </span><span class="lineNoCov">          0 :                                         ? filter_name_map[j].strfy_encoder</span></a>
+<a name="1192"><span class="lineNum">    1192 </span><span class="lineNoCov">          0 :                                         : filter_name_map[j].strfy_decoder;</span></a>
+<a name="1193"><span class="lineNum">    1193 </span><span class="lineNoCov">          0 :                                 strfy_filter(&amp;dest, opt_delim,</span></a>
+<a name="1194"><span class="lineNum">    1194 </span>            :                                                 filter_name_map[j].optmap,</a>
+<a name="1195"><span class="lineNum">    1195 </span>            :                                                 optmap_count,</a>
+<a name="1196"><span class="lineNum">    1196 </span>            :                                                 filters[i].options);</a>
+<a name="1197"><span class="lineNum">    1197 </span><span class="lineNoCov">          0 :                                 break;</span></a>
+<a name="1198"><span class="lineNum">    1198 </span>            :                         }</a>
+<a name="1199"><span class="lineNum">    1199 </span>            : </a>
+<a name="1200"><span class="lineNum">    1200 </span><span class="lineNoCov">          0 :                         ++j;</span></a>
+<a name="1201"><span class="lineNum">    1201 </span>            :                 }</a>
+<a name="1202"><span class="lineNum">    1202 </span>            :         }</a>
+<a name="1203"><span class="lineNum">    1203 </span>            : </a>
+<a name="1204"><span class="lineNum">    1204 </span><span class="lineNoCov">          0 :         return str_finish(output_str, &amp;dest, allocator);</span></a>
+<a name="1205"><span class="lineNum">    1205 </span>            : }</a>
+<a name="1206"><span class="lineNum">    1206 </span>            : </a>
+<a name="1207"><span class="lineNum">    1207 </span>            : </a>
+<a name="1208"><span class="lineNum">    1208 </span>            : extern LZMA_API(lzma_ret)</a>
+<a name="1209"><span class="lineNum">    1209 </span><span class="lineNoCov">          0 : lzma_str_list_filters(char **output_str, lzma_vli filter_id, uint32_t flags,</span></a>
+<a name="1210"><span class="lineNum">    1210 </span>            :                 const lzma_allocator *allocator)</a>
+<a name="1211"><span class="lineNum">    1211 </span>            : {</a>
+<a name="1212"><span class="lineNum">    1212 </span>            :         // On error *output_str is always set to NULL.</a>
+<a name="1213"><span class="lineNum">    1213 </span>            :         // Do it as the very first step.</a>
+<a name="1214"><span class="lineNum">    1214 </span><span class="lineNoCov">          0 :         if (output_str == NULL)</span></a>
+<a name="1215"><span class="lineNum">    1215 </span>            :                 return LZMA_PROG_ERROR;</a>
+<a name="1216"><span class="lineNum">    1216 </span>            : </a>
+<a name="1217"><span class="lineNum">    1217 </span><span class="lineNoCov">          0 :         *output_str = NULL;</span></a>
+<a name="1218"><span class="lineNum">    1218 </span>            : </a>
+<a name="1219"><span class="lineNum">    1219 </span>            :         // Validate the flags.</a>
+<a name="1220"><span class="lineNum">    1220 </span><span class="lineNoCov">          0 :         const uint32_t supported_flags</span></a>
+<a name="1221"><span class="lineNum">    1221 </span>            :                         = LZMA_STR_ALL_FILTERS</a>
+<a name="1222"><span class="lineNum">    1222 </span>            :                         | LZMA_STR_ENCODER</a>
+<a name="1223"><span class="lineNum">    1223 </span>            :                         | LZMA_STR_DECODER</a>
+<a name="1224"><span class="lineNum">    1224 </span>            :                         | LZMA_STR_GETOPT_LONG;</a>
+<a name="1225"><span class="lineNum">    1225 </span>            : </a>
+<a name="1226"><span class="lineNum">    1226 </span><span class="lineNoCov">          0 :         if (flags &amp; ~supported_flags)</span></a>
+<a name="1227"><span class="lineNum">    1227 </span>            :                 return LZMA_OPTIONS_ERROR;</a>
+<a name="1228"><span class="lineNum">    1228 </span>            : </a>
+<a name="1229"><span class="lineNum">    1229 </span>            :         // Allocate memory for the output string.</a>
+<a name="1230"><span class="lineNum">    1230 </span><span class="lineNoCov">          0 :         lzma_str dest;</span></a>
+<a name="1231"><span class="lineNum">    1231 </span><span class="lineNoCov">          0 :         return_if_error(str_init(&amp;dest, allocator));</span></a>
+<a name="1232"><span class="lineNum">    1232 </span>            : </a>
+<a name="1233"><span class="lineNum">    1233 </span>            :         // If only listing the filter names then separate them with spaces.</a>
+<a name="1234"><span class="lineNum">    1234 </span>            :         // Otherwise use newlines.</a>
+<a name="1235"><span class="lineNum">    1235 </span><span class="lineNoCov">          0 :         const bool show_opts = (flags &amp; (LZMA_STR_ENCODER | LZMA_STR_DECODER));</span></a>
+<a name="1236"><span class="lineNum">    1236 </span><span class="lineNoCov">          0 :         const char *filter_delim = show_opts ? &quot;\n&quot; : &quot; &quot;;</span></a>
+<a name="1237"><span class="lineNum">    1237 </span>            : </a>
+<a name="1238"><span class="lineNum">    1238 </span><span class="lineNoCov">          0 :         const char *opt_delim = (flags &amp; LZMA_STR_GETOPT_LONG) ? &quot;=&quot; : &quot;:&quot;;</span></a>
+<a name="1239"><span class="lineNum">    1239 </span><span class="lineNoCov">          0 :         bool first_filter_printed = false;</span></a>
+<a name="1240"><span class="lineNum">    1240 </span>            : </a>
+<a name="1241"><span class="lineNum">    1241 </span><span class="lineNoCov">          0 :         for (size_t i = 0; i &lt; ARRAY_SIZE(filter_name_map); ++i) {</span></a>
+<a name="1242"><span class="lineNum">    1242 </span>            :                 // If we are printing only one filter then skip others.</a>
+<a name="1243"><span class="lineNum">    1243 </span><span class="lineNoCov">          0 :                 if (filter_id != LZMA_VLI_UNKNOWN</span></a>
+<a name="1244"><span class="lineNum">    1244 </span><span class="lineNoCov">          0 :                                 &amp;&amp; filter_id != filter_name_map[i].id)</span></a>
+<a name="1245"><span class="lineNum">    1245 </span><span class="lineNoCov">          0 :                         continue;</span></a>
+<a name="1246"><span class="lineNum">    1246 </span>            : </a>
+<a name="1247"><span class="lineNum">    1247 </span>            :                 // If we are printing only .xz filters then skip the others.</a>
+<a name="1248"><span class="lineNum">    1248 </span><span class="lineNoCov">          0 :                 if (filter_name_map[i].id &gt;= LZMA_FILTER_RESERVED_START</span></a>
+<a name="1249"><span class="lineNum">    1249 </span><span class="lineNoCov">          0 :                                 &amp;&amp; (flags &amp; LZMA_STR_ALL_FILTERS) == 0</span></a>
+<a name="1250"><span class="lineNum">    1250 </span><span class="lineNoCov">          0 :                                 &amp;&amp; filter_id == LZMA_VLI_UNKNOWN)</span></a>
+<a name="1251"><span class="lineNum">    1251 </span><span class="lineNoCov">          0 :                         continue;</span></a>
+<a name="1252"><span class="lineNum">    1252 </span>            : </a>
+<a name="1253"><span class="lineNum">    1253 </span>            :                 // Add a new line if this isn't the first filter being</a>
+<a name="1254"><span class="lineNum">    1254 </span>            :                 // written to the string.</a>
+<a name="1255"><span class="lineNum">    1255 </span><span class="lineNoCov">          0 :                 if (first_filter_printed)</span></a>
+<a name="1256"><span class="lineNum">    1256 </span><span class="lineNoCov">          0 :                         str_append_str(&amp;dest, filter_delim);</span></a>
+<a name="1257"><span class="lineNum">    1257 </span>            : </a>
+<a name="1258"><span class="lineNum">    1258 </span><span class="lineNoCov">          0 :                 first_filter_printed = true;</span></a>
+<a name="1259"><span class="lineNum">    1259 </span>            : </a>
+<a name="1260"><span class="lineNum">    1260 </span><span class="lineNoCov">          0 :                 if (flags &amp; LZMA_STR_GETOPT_LONG)</span></a>
+<a name="1261"><span class="lineNum">    1261 </span><span class="lineNoCov">          0 :                         str_append_str(&amp;dest, &quot;--&quot;);</span></a>
+<a name="1262"><span class="lineNum">    1262 </span>            : </a>
+<a name="1263"><span class="lineNum">    1263 </span><span class="lineNoCov">          0 :                 str_append_str(&amp;dest, filter_name_map[i].name);</span></a>
+<a name="1264"><span class="lineNum">    1264 </span>            : </a>
+<a name="1265"><span class="lineNum">    1265 </span>            :                 // If only the filter names were wanted then continue</a>
+<a name="1266"><span class="lineNum">    1266 </span>            :                 // to the next filter.</a>
+<a name="1267"><span class="lineNum">    1267 </span><span class="lineNoCov">          0 :                 if (!show_opts)</span></a>
+<a name="1268"><span class="lineNum">    1268 </span><span class="lineNoCov">          0 :                         continue;</span></a>
+<a name="1269"><span class="lineNum">    1269 </span>            : </a>
+<a name="1270"><span class="lineNum">    1270 </span><span class="lineNoCov">          0 :                 const option_map *optmap = filter_name_map[i].optmap;</span></a>
+<a name="1271"><span class="lineNum">    1271 </span><span class="lineNoCov">          0 :                 const char *d = opt_delim;</span></a>
+<a name="1272"><span class="lineNum">    1272 </span>            : </a>
+<a name="1273"><span class="lineNum">    1273 </span><span class="lineNoCov">          0 :                 const size_t end = (flags &amp; LZMA_STR_ENCODER)</span></a>
+<a name="1274"><span class="lineNum">    1274 </span><span class="lineNoCov">          0 :                                 ? filter_name_map[i].strfy_encoder</span></a>
+<a name="1275"><span class="lineNum">    1275 </span><span class="lineNoCov">          0 :                                 : filter_name_map[i].strfy_decoder;</span></a>
+<a name="1276"><span class="lineNum">    1276 </span>            : </a>
+<a name="1277"><span class="lineNum">    1277 </span><span class="lineNoCov">          0 :                 for (size_t j = 0; j &lt; end; ++j) {</span></a>
+<a name="1278"><span class="lineNum">    1278 </span>            :                         // The first option is delimited from the filter</a>
+<a name="1279"><span class="lineNum">    1279 </span>            :                         // name using &quot;=&quot; or &quot;:&quot; and the rest of the options</a>
+<a name="1280"><span class="lineNum">    1280 </span>            :                         // are separated with &quot;,&quot;.</a>
+<a name="1281"><span class="lineNum">    1281 </span><span class="lineNoCov">          0 :                         str_append_str(&amp;dest, d);</span></a>
+<a name="1282"><span class="lineNum">    1282 </span><span class="lineNoCov">          0 :                         d = &quot;,&quot;;</span></a>
+<a name="1283"><span class="lineNum">    1283 </span>            : </a>
+<a name="1284"><span class="lineNum">    1284 </span>            :                         // optname=&lt;possible_values&gt;</a>
+<a name="1285"><span class="lineNum">    1285 </span><span class="lineNoCov">          0 :                         str_append_str(&amp;dest, optmap[j].name);</span></a>
+<a name="1286"><span class="lineNum">    1286 </span><span class="lineNoCov">          0 :                         str_append_str(&amp;dest, &quot;=&lt;&quot;);</span></a>
+<a name="1287"><span class="lineNum">    1287 </span>            : </a>
+<a name="1288"><span class="lineNum">    1288 </span><span class="lineNoCov">          0 :                         if (optmap[j].type == OPTMAP_TYPE_LZMA_PRESET) {</span></a>
+<a name="1289"><span class="lineNum">    1289 </span>            :                                 // LZMA1/2 preset has its custom help string.</a>
+<a name="1290"><span class="lineNum">    1290 </span><span class="lineNoCov">          0 :                                 str_append_str(&amp;dest, LZMA12_PRESET_STR);</span></a>
+<a name="1291"><span class="lineNum">    1291 </span><span class="lineNoCov">          0 :                         } else if (optmap[j].flags</span></a>
+<a name="1292"><span class="lineNum">    1292 </span>            :                                         &amp; OPTMAP_USE_NAME_VALUE_MAP) {</a>
+<a name="1293"><span class="lineNum">    1293 </span>            :                                 // Separate the possible option values by &quot;|&quot;.</a>
+<a name="1294"><span class="lineNum">    1294 </span><span class="lineNoCov">          0 :                                 const name_value_map *m = optmap[j].u.map;</span></a>
+<a name="1295"><span class="lineNum">    1295 </span><span class="lineNoCov">          0 :                                 for (size_t k = 0; m[k].name[0] != '\0'; ++k) {</span></a>
+<a name="1296"><span class="lineNum">    1296 </span><span class="lineNoCov">          0 :                                         if (k &gt; 0)</span></a>
+<a name="1297"><span class="lineNum">    1297 </span><span class="lineNoCov">          0 :                                                 str_append_str(&amp;dest, &quot;|&quot;);</span></a>
+<a name="1298"><span class="lineNum">    1298 </span>            : </a>
+<a name="1299"><span class="lineNum">    1299 </span><span class="lineNoCov">          0 :                                         str_append_str(&amp;dest, m[k].name);</span></a>
+<a name="1300"><span class="lineNum">    1300 </span>            :                                 }</a>
+<a name="1301"><span class="lineNum">    1301 </span>            :                         } else {</a>
+<a name="1302"><span class="lineNum">    1302 </span>            :                                 // Integer range is shown as min-max.</a>
+<a name="1303"><span class="lineNum">    1303 </span><span class="lineNoCov">          0 :                                 const bool use_byte_suffix = optmap[j].flags</span></a>
+<a name="1304"><span class="lineNum">    1304 </span>            :                                                 &amp; OPTMAP_USE_BYTE_SUFFIX;</a>
+<a name="1305"><span class="lineNum">    1305 </span><span class="lineNoCov">          0 :                                 str_append_u32(&amp;dest, optmap[j].u.range.min,</span></a>
+<a name="1306"><span class="lineNum">    1306 </span>            :                                                 use_byte_suffix);</a>
+<a name="1307"><span class="lineNum">    1307 </span><span class="lineNoCov">          0 :                                 str_append_str(&amp;dest, &quot;-&quot;);</span></a>
+<a name="1308"><span class="lineNum">    1308 </span><span class="lineNoCov">          0 :                                 str_append_u32(&amp;dest, optmap[j].u.range.max,</span></a>
+<a name="1309"><span class="lineNum">    1309 </span>            :                                                 use_byte_suffix);</a>
+<a name="1310"><span class="lineNum">    1310 </span>            :                         }</a>
+<a name="1311"><span class="lineNum">    1311 </span>            : </a>
+<a name="1312"><span class="lineNum">    1312 </span><span class="lineNoCov">          0 :                         str_append_str(&amp;dest, &quot;&gt;&quot;);</span></a>
+<a name="1313"><span class="lineNum">    1313 </span>            :                 }</a>
+<a name="1314"><span class="lineNum">    1314 </span>            :         }</a>
+<a name="1315"><span class="lineNum">    1315 </span>            : </a>
+<a name="1316"><span class="lineNum">    1316 </span>            :         // If no filters were added to the string then it must be because</a>
+<a name="1317"><span class="lineNum">    1317 </span>            :         // the caller provided an unsupported Filter ID.</a>
+<a name="1318"><span class="lineNum">    1318 </span><span class="lineNoCov">          0 :         if (!first_filter_printed) {</span></a>
+<a name="1319"><span class="lineNum">    1319 </span><span class="lineNoCov">          0 :                 str_free(&amp;dest, allocator);</span></a>
+<a name="1320"><span class="lineNum">    1320 </span><span class="lineNoCov">          0 :                 return LZMA_OPTIONS_ERROR;</span></a>
+<a name="1321"><span class="lineNum">    1321 </span>            :         }</a>
+<a name="1322"><span class="lineNum">    1322 </span>            : </a>
+<a name="1323"><span class="lineNum">    1323 </span><span class="lineNoCov">          0 :         return str_finish(output_str, &amp;dest, allocator);</span></a>
+<a name="1324"><span class="lineNum">    1324 </span>            : }</a>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.14</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
