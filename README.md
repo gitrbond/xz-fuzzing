@@ -16,7 +16,7 @@ build xz distribution with AFL instrumentation.
 ![image](https://github.com/gitrbond/xz-fuzzing/assets/61554885/2c09c888-076c-41cc-91ae-8cf6715c739f)
 
 
-## prepare initial set of exaples
+## prepare initial set of examples
 The seeds_dir contains initial test cases to be compressed, seeds_xz_dir contains test cases of compressed files to be decompressed. They are: small code example, a binary executable, a text file containing all 256 ASCII characters, a picture, a voice recorder file and an already compressed file.
 
 ## fuzz-test 
@@ -24,6 +24,7 @@ To fuzz-test decompression wuth afl: `/path/to/afl/afl-fuzz -i seeds_xz_dir/ -o 
 
 ## fuzzing results
 Fuzzing was stopped once no new paths were found in 15 minutes. In 2h 47min, 443 paths were found, and zero crashes.
+
 ![image](https://github.com/gitrbond/xz-fuzzing/assets/61554885/cb95ddb1-ed11-4e9d-9e5a-1d93ce5f7c2e)
 
 # calculating code coverage with lcov
@@ -35,6 +36,7 @@ To calculate code coverage, another distribution is compiled from sources with -
 4) `for file in path/to/output_dir/default/queue/*; do ./xz -d $file; done` (execute all paths)
 
 When executing, .gcda files are created, they can be found in a distribution dir by `find -name *.gcda` - they are bitmaps with data about executed paths.
+
 ![image](https://github.com/gitrbond/xz-fuzzing/assets/61554885/f80d4ffa-29e1-4846-aca3-7ab053dd9c0a)
 
 Lastly, generate coverage report with 
